@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vamios Bingo Admin</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ================= LOGIN ================= -->
+  <div id="loginScreen" class="screen">
+    <h1>🔐 Admin Login</h1>
+
+    <input
+      type="password"
+      id="adminPassword"
+      placeholder="Enter admin password"
+      style="width:100%;padding:14px;border-radius:10px;border:none;margin:10px 0;"
+    />
+
+    <button id="loginBtn">Login</button>
+  </div>
+
+  <!-- ================= DASHBOARD ================= -->
+  <div id="adminScreen" class="screen hidden">
+    <h1>🎱 Vamios Admin</h1>
+
+    <div class="top-actions">
+      <button id="logoutBtn">Logout</button>
+    </div>
+
+    <div class="transaction">
+      <h3>Total Users</h3>
+      <h2 id="totalUsers">0</h2>
+    </div>
+
+    <div class="transaction">
+      <h3>Active Games</h3>
+      <h2 id="activeGames">0</h2>
+    </div>
+
+    <div class="transaction">
+      <h3>Pending Deposits</h3>
+      <h2 id="pendingDeposits">0</h2>
+    </div>
+
+    <h2>Pending Deposit Requests</h2>
+    <div id="depositList"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>
