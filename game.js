@@ -919,3 +919,69 @@ window.addEventListener(
 
     }
 );
+// =========================================
+// BINGO BUTTON
+// =========================================
+
+document.addEventListener("DOMContentLoaded", () => {
+    const bingoBtn = document.getElementById("bingoBtn");
+    if (bingoBtn) {
+        bingoBtn.addEventListener("click", checkWinner);
+    }
+});
+
+function checkWinner() {
+    const cells = Array.from(document.querySelectorAll("#bingoCard .cell"));
+
+    if (cells.length !== 25) {
+        alert("Board not loaded.");
+        return;
+    }
+
+    const marked = cells.map(cell =>
+        cell.classList.contains("marked")
+    );
+
+    const winPatterns = [];
+
+    // Horizontal
+    for (let r = 0; r < 5; r++) {
+        winPatterns.push([
+            r * 5 + 0,
+            r * 5 + 1,
+            r * 5 + 2,
+            r * 5 + 3,
+            r * 5 + 4
+        ]);
+    }
+
+    // Vertical
+    for (let c = 0; c < 5; c++) {
+        winPatterns.push([
+            c,
+            c + 5,
+            c + 10,
+            c + 15,
+            c + 20
+        ]);
+    }
+
+    // Main diagonal
+    winPatterns.push([0, 6, 12, 18, 24]);
+
+    // Reverse diagonal
+    winPatterns.push([4, 8, 12, 16, 20]);
+
+    // Four corners
+    winPatterns.push([0, 4, 20, 24]);
+
+    const winner = winPatterns.some(pattern =>
+        pattern.every(index => marked[index])
+    );
+
+    if (winner) {
+        alert("🎉 BINGO! You are the winner!");
+    } else {
+        alert("❌ Not a winning bingo yet.");
+    }
+}
