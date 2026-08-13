@@ -147,10 +147,10 @@ function showCardPreview(board) {
             }
 
             html += `
-                <div class="preview-cell">
-                    ${value}
-                </div>
-            `;
+    <div class="preview-cell ${value === 'FREE' ? 'free' : ''}">
+        ${value}
+    </div>
+`;
         }
     }
 
@@ -158,8 +158,11 @@ function showCardPreview(board) {
         </div>
     `;
 
-    preview.innerHTML = html;
-}
+    preview.innerHTML = '<div class="board-preview">' +
+  boardNumbers.map(n =>
+    `<div class="cell ${n === 'FREE' ? 'free' : ''}">${n}</div>`
+  ).join('') +
+'</div>';
 
 
 // ===============================
