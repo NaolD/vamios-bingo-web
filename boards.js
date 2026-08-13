@@ -5,6 +5,8 @@
 
 let selectedBoard = null;
 let startGameBusy = false;
+let boardSelectionTimer = null;
+let boardTimeLeft = 30;
 
 
 // ===============================
@@ -23,44 +25,197 @@ async function loadBoards() {
 
     container.innerHTML = "Loading boards...";
 
-    const { data, error } =
-        await supabaseClient
-            .from("boards")
-            .select("*")
-            .order("board_number");
+    try {
 
-    if (error) {
-        console.error("Load boards error:", error);
-        container.innerHTML = "Cannot load boards";
-        return;
-    }
+        // ===============================
+        // LOAD ALL BOARDS
+        // ===============================
 
-    container.innerHTML = "";
+        const {
+            data: boards,
+            error: boardsError
+        } =
+            await supabaseClient
+                .from("boards")
+                .select("*")
+                .order("board_number");
 
-    if (!data || data.length === 0) {
-        container.innerHTML = "No boards available";
-        return;
-    }
+        if (boardsError) {
+            throw boardsError;
+        }
 
-    data.forEach(board => {
+        if (!boards || boards.length === 0) {
+            container.innerHTML =
+                "No boards available";
+            return;
+        }
 
-        const box =
-            document.createElement("div");
 
-        box.className = "board";
+        // ===============================
+        // FIND CURRENT GAME
+        // ===============================
 
-        box.innerText =
-            board.board_number;
+        const roomId =
+            Number(
+                localStorage.getItem("room_id")
+            );
 
-        box.addEventListener(
-            "click",
-            function () {
-                selectBoard(board, box);
+        let currentGame = null;
+
+        if (roomId) {
+
+            const {
+                data: game,
+                error: gameError
+            } =
+                await supabaseClient
+                    .from("games")
+                    .select("*")
+                    .eq("room_id", roomId)
+                    .eq("status", "waiting")
+                    .order("id", {
+                        ascending: false
+                    })
+                    .limit(1)
+                    .maybeSingle();
+
+            if (gameError) {
+                console.error(
+                    "Load current game error:",
+                    gameError
+                );
             }
+
+            currentGame = game;
+        }
+
+
+        // ===============================
+        // FIND TAKEN BOARDS
+        // ===============================
+
+        let takenBoardIds = [];
+
+        if (currentGame) {
+
+            const {
+                data: players,
+                error: playersError
+            } =
+                await supabaseClient
+                    .from("game_players")
+                    .select("board_id")
+                    .eq(
+                        "game_id",
+                        currentGame.id
+                    );
+
+            if (playersError) {
+                console.error(
+                    "Load taken boards error:",
+                    playersError
+                );
+            } else {
+
+                takenBoardIds =
+                    (players || [])
+                        .map(player =>
+                            Number(player.board_id)
+                        );
+            }
+        }
+
+
+        // ===============================
+        // CREATE GRID
+        // ===============================
+
+        container.innerHTML = "";
+
+        boards.forEach(board => {
+
+            const box =
+                document.createElement("div");
+
+            box.className = "board";
+
+            box.innerText =
+                board.board_number;
+
+
+            const isTaken =
+                takenBoardIds.includes(
+                    Number(board.id)
+                );
+
+
+            // ===============================
+            // TAKEN
+            // ===============================
+
+            if (isTaken) {
+
+                box.classList.add("taken");
+
+                box.innerText =
+                    board.board_number;
+
+                box.title =
+                    "Already taken";
+
+            } else {
+
+                // ===============================
+                // AVAILABLE
+                // ===============================
+
+                box.addEventListener(
+                    "click",
+                    function () {
+
+                        selectBoard(
+                            board,
+                            box
+                        );
+
+                    }
+                );
+            }
+
+
+            container.appendChild(box);
+
+        });
+
+
+        // ===============================
+        // START TIMER
+        // ===============================
+
+        startBoardSelectionTimer();
+
+
+        console.log(
+            "Boards loaded:",
+            boards.length
         );
 
-        container.appendChild(box);
-    });
+        console.log(
+            "Taken boards:",
+            takenBoardIds
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "Load boards error:",
+            error
+        );
+
+        container.innerHTML =
+            "Cannot load boards";
+    }
 }
 
 
@@ -70,41 +225,112 @@ async function loadBoards() {
 
 function selectBoard(board, box) {
 
+    // Don't allow taken boards
+    if (
+        box.classList.contains("taken")
+    ) {
+        return;
+    }
+
+
+    // Remove previous selection
     document
         .querySelectorAll(".board")
         .forEach(item => {
-            item.classList.remove("selected");
+
+            item.classList.remove(
+                "selected"
+            );
+
         });
 
+
+    // Select this board
     box.classList.add("selected");
 
     selectedBoard = board;
 
+
+    // Save selected board
     localStorage.setItem(
         "selected_board_id",
         board.id
     );
 
-    showCardPreview(board);
 
+    // Show selected number
+    updateSelectedBoardDisplay(
+        board.board_number
+    );
+
+
+    // Enable start button
     const startButton =
-        document.getElementById("startBtn");
+        document.getElementById(
+            "startBtn"
+        );
+
 
     if (startButton) {
 
         startButton.disabled = false;
 
-        startButton.style.pointerEvents = "auto";
+        startButton.style.pointerEvents =
+            "auto";
 
-        startButton.style.opacity = "1";
+        startButton.style.opacity =
+            "1";
 
-        startButton.innerText = "START GAME";
+        startButton.innerText =
+            "START GAME";
     }
+
+
+    // Show card preview
+    showCardPreview(board);
+
 
     console.log(
         "Selected board:",
         board.board_number
     );
+}
+
+
+// ===============================
+// SELECTED BOARD DISPLAY
+// ===============================
+
+function updateSelectedBoardDisplay(
+    boardNumber
+) {
+
+    const elements = [
+
+        document.getElementById(
+            "selectedBoard"
+        ),
+
+        document.getElementById(
+            "selectedNumber"
+        ),
+
+        document.getElementById(
+            "selectedBoardNumber"
+        )
+
+    ];
+
+
+    elements.forEach(element => {
+
+        if (element) {
+
+            element.innerText =
+                "#" + boardNumber;
+        }
+
+    });
 }
 
 
@@ -115,13 +341,26 @@ function selectBoard(board, box) {
 function showCardPreview(board) {
 
     const preview =
-        document.getElementById("cardPreview");
+        document.getElementById(
+            "cardPreview"
+        );
 
     if (!preview) {
         return;
     }
 
-    const card = board.card_data;
+
+    const card =
+        board.card_data;
+
+
+    if (!card) {
+
+        preview.innerHTML = "";
+
+        return;
+    }
+
 
     const letters = [
         "B",
@@ -131,38 +370,191 @@ function showCardPreview(board) {
         "O"
     ];
 
+
     let html = `
         <div class="preview-card">
     `;
 
-    for (let row = 0; row < 5; row++) {
 
-        for (let col = 0; col < 5; col++) {
+    for (
+        let row = 0;
+        row < 5;
+        row++
+    ) {
+
+        for (
+            let col = 0;
+            col < 5;
+            col++
+        ) {
 
             let value =
-                card[letters[col]][row];
+                card[
+                    letters[col]
+                ][row];
 
-            if (row === 2 && col === 2) {
-                value = "FREE";
+
+            if (
+                row === 2 &&
+                col === 2
+            ) {
+
+                value =
+                    "FREE";
             }
 
+
             html += `
-    <div class="preview-cell ${value === 'FREE' ? 'free' : ''}">
-        ${value}
-    </div>
-`;
+                <div class="preview-cell ${
+                    value === "FREE"
+                        ? "free"
+                        : ""
+                }">
+                    ${value}
+                </div>
+            `;
         }
     }
+
 
     html += `
         </div>
     `;
 
-    preview.innerHTML = '<div class="board-preview">' +
-  boardNumbers.map(n =>
-    `<div class="cell ${n === 'FREE' ? 'free' : ''}">${n}</div>`
-  ).join('') +
-'</div>';
+
+    preview.innerHTML =
+        html;
+}
+
+
+// ===============================
+// BOARD SELECTION TIMER
+// ===============================
+
+function startBoardSelectionTimer() {
+
+    // Clear old timer
+    if (boardSelectionTimer) {
+
+        clearInterval(
+            boardSelectionTimer
+        );
+    }
+
+
+    boardTimeLeft = 30;
+
+
+    updateBoardTimer();
+
+
+    boardSelectionTimer =
+        setInterval(
+            function () {
+
+                boardTimeLeft--;
+
+
+                updateBoardTimer();
+
+
+                if (
+                    boardTimeLeft <= 0
+                ) {
+
+                    clearInterval(
+                        boardSelectionTimer
+                    );
+
+                    lockBoardSelection();
+                }
+
+            },
+            1000
+        );
+}
+
+
+// ===============================
+// UPDATE TIMER
+// ===============================
+
+function updateBoardTimer() {
+
+    const timerElements = [
+
+        document.getElementById(
+            "boardTimer"
+        ),
+
+        document.getElementById(
+            "selectionTimer"
+        ),
+
+        document.getElementById(
+            "timeLeft"
+        )
+
+    ];
+
+
+    timerElements.forEach(element => {
+
+        if (element) {
+
+            element.innerText =
+                "00:" +
+                String(
+                    boardTimeLeft
+                ).padStart(2, "0");
+
+        }
+
+    });
+}
+
+
+// ===============================
+// LOCK BOARD SELECTION
+// ===============================
+
+function lockBoardSelection() {
+
+    console.log(
+        "Board selection locked"
+    );
+
+
+    document
+        .querySelectorAll(".board")
+        .forEach(box => {
+
+            box.style.pointerEvents =
+                "none";
+
+        });
+
+
+    const startButton =
+        document.getElementById(
+            "startBtn"
+        );
+
+
+    // If player selected a board,
+    // keep START GAME available.
+    if (
+        startButton &&
+        !selectedBoard
+    ) {
+
+        startButton.disabled =
+            true;
+
+        startButton.style.opacity =
+            "0.5";
+    }
+}
 
 
 // ===============================
@@ -172,7 +564,10 @@ function showCardPreview(board) {
 function setupStartButton() {
 
     const startButton =
-        document.getElementById("startBtn");
+        document.getElementById(
+            "startBtn"
+        );
+
 
     if (!startButton) {
 
@@ -183,29 +578,41 @@ function setupStartButton() {
         return;
     }
 
+
     console.log(
         "START BUTTON FOUND"
     );
 
-    // Remove old onclick/listener behavior
+
+    // Prevent duplicate handlers
     startButton.onclick = null;
 
-    // Use onclick directly
+
     startButton.onclick =
-        async function (event) {
+        async function(event) {
 
             event.preventDefault();
+
 
             console.log(
                 "START BUTTON CLICKED"
             );
 
+
             await startSelectedGame();
+
         };
+
 
     // Initial state
     if (!selectedBoard) {
-        startButton.disabled = true;
+
+        startButton.disabled =
+            true;
+
+        startButton.style.opacity =
+            "0.5";
+
     }
 }
 
@@ -214,10 +621,9 @@ function setupStartButton() {
 // START BUTTON SETUP
 // ===============================
 
-// Run immediately
 setupStartButton();
 
-// Run again after DOM is ready
+
 document.addEventListener(
     "DOMContentLoaded",
     setupStartButton
@@ -233,6 +639,7 @@ async function startSelectedGame() {
     console.log(
         "START GAME FUNCTION RUNNING"
     );
+
 
     if (startGameBusy) {
 
@@ -262,15 +669,19 @@ async function startSelectedGame() {
 
 
     const startButton =
-        document.getElementById("startBtn");
+        document.getElementById(
+            "startBtn"
+        );
 
 
     if (startButton) {
 
-        startButton.disabled = true;
+        startButton.disabled =
+            true;
 
         startButton.innerText =
-            "Joining...";
+            "JOINING...";
+
     }
 
 
@@ -282,10 +693,14 @@ async function startSelectedGame() {
 
         const roomId =
             Number(
-                localStorage.getItem("room_id")
+                localStorage.getItem(
+                    "room_id"
+                )
             );
 
+
         if (!roomId) {
+
             throw new Error(
                 "No room selected."
             );
@@ -299,7 +714,9 @@ async function startSelectedGame() {
         const user =
             await getCurrentUser();
 
+
         if (!user) {
+
             throw new Error(
                 "User not found."
             );
@@ -323,8 +740,12 @@ async function startSelectedGame() {
             await supabaseClient
                 .from("rooms")
                 .select("*")
-                .eq("id", roomId)
+                .eq(
+                    "id",
+                    roomId
+                )
                 .single();
+
 
         if (roomError) {
             throw roomError;
@@ -332,7 +753,9 @@ async function startSelectedGame() {
 
 
         const entryFee =
-            Number(room.entry_fee);
+            Number(
+                room.entry_fee
+            );
 
 
         // ===============================
@@ -340,12 +763,16 @@ async function startSelectedGame() {
         // ===============================
 
         const balance =
-            await getBalance(user.id);
+            await getBalance(
+                user.id
+            );
+
 
         console.log(
             "Balance:",
             balance
         );
+
 
         console.log(
             "Entry fee:",
@@ -380,13 +807,23 @@ async function startSelectedGame() {
             await supabaseClient
                 .from("games")
                 .select("*")
-                .eq("room_id", roomId)
-                .eq("status", "waiting")
-                .order("id", {
-                    ascending: false
-                })
+                .eq(
+                    "room_id",
+                    roomId
+                )
+                .eq(
+                    "status",
+                    "waiting"
+                )
+                .order(
+                    "id",
+                    {
+                        ascending: false
+                    }
+                )
                 .limit(1)
                 .maybeSingle();
+
 
         if (gameError) {
             throw gameError;
@@ -402,6 +839,7 @@ async function startSelectedGame() {
             console.log(
                 "Creating new game..."
             );
+
 
             const {
                 data: newGame,
@@ -437,11 +875,14 @@ async function startSelectedGame() {
                     .select()
                     .single();
 
+
             if (newGameError) {
                 throw newGameError;
             }
 
-            game = newGame;
+
+            game =
+                newGame;
         }
 
 
@@ -471,6 +912,7 @@ async function startSelectedGame() {
                     selectedBoard.id
                 );
 
+
         if (takenError) {
             throw takenError;
         }
@@ -485,6 +927,9 @@ async function startSelectedGame() {
                 "This number is already taken."
             );
 
+            // Reload board grid
+            await loadBoards();
+
             return;
         }
 
@@ -497,13 +942,16 @@ async function startSelectedGame() {
             "Deducting entry fee..."
         );
 
+
         const paid =
             await deductBalance(
                 user.id,
                 entryFee
             );
 
+
         if (!paid) {
+
             return;
         }
 
@@ -515,6 +963,7 @@ async function startSelectedGame() {
         console.log(
             "Joining game..."
         );
+
 
         const {
             error: joinError
@@ -534,6 +983,7 @@ async function startSelectedGame() {
 
                     ready:
                         true
+
                 }]);
 
 
@@ -544,17 +994,21 @@ async function startSelectedGame() {
                 joinError
             );
 
-            // Refund if joining failed
+
+            // Refund
             await supabaseClient
                 .from("wallets")
                 .update({
+
                     balance:
                         Number(balance)
+
                 })
                 .eq(
                     "user_id",
                     user.id
                 );
+
 
             throw joinError;
         }
@@ -571,15 +1025,18 @@ async function startSelectedGame() {
 
 
         const totalPool =
-            newCount * entryFee;
+            newCount *
+            entryFee;
 
 
         const commission =
-            totalPool * 0.20;
+            totalPool *
+            0.20;
 
 
         const prizePool =
-            totalPool - commission;
+            totalPool -
+            commission;
 
 
         const {
@@ -597,6 +1054,7 @@ async function startSelectedGame() {
 
                     commission:
                         commission
+
                 })
                 .eq(
                     "id",
@@ -618,6 +1076,7 @@ async function startSelectedGame() {
             game.id
         );
 
+
         localStorage.setItem(
             "selected_board_id",
             selectedBoard.id
@@ -627,6 +1086,18 @@ async function startSelectedGame() {
         console.log(
             "GAME JOINED SUCCESSFULLY"
         );
+
+
+        // Stop board timer
+        if (boardSelectionTimer) {
+
+            clearInterval(
+                boardSelectionTimer
+            );
+
+            boardSelectionTimer =
+                null;
+        }
 
 
         // ===============================
@@ -654,6 +1125,7 @@ async function startSelectedGame() {
             error
         );
 
+
         alert(
             error.message ||
             "Could not start game."
@@ -662,11 +1134,14 @@ async function startSelectedGame() {
 
     } finally {
 
-        startGameBusy = false;
+        startGameBusy =
+            false;
+
 
         if (startButton) {
 
-            startButton.disabled = false;
+            startButton.disabled =
+                false;
 
             startButton.innerText =
                 "START GAME";
