@@ -246,29 +246,13 @@ function renderCard() {
                 col === 2;
 
 
-            const isCalled =
-                isFree ||
-                calledNumbers.includes(
-                    Number(value)
-                );
+const isFree = row === 2 && col === 2;
 
-
-            html += `
-                <div
-                    class="cell ${
-                        isCalled
-                            ? "marked"
-                            : ""
-                    }"
-                    data-number="${value}"
-                >
-                    ${
-                        isFree
-                            ? "FREE"
-                            : value
-                    }
-                </div>
-            `;
+html += `
+    <div class="cell ${isFree ? "marked" : ""}" data-number="${value}">
+        ${isFree ? "FREE" : value}
+    </div>
+`;
         }
     }
 
@@ -281,53 +265,24 @@ function renderCard() {
     // PLAYER MARKING
     // ==========================================
 
-    cardElement
-        .querySelectorAll(
-            ".cell"
-        )
-        .forEach(
-            (cell) => {
+    cardElement.querySelectorAll(".cell").forEach(cell => {
+    cell.onclick = () => {
+        const value = cell.dataset.number;
 
-                cell.onclick =
-                    () => {
+        if (value === "FREE") {
+            cell.classList.add("marked");
+            return;
+        }
 
-                        const value =
-                            cell.dataset.number;
+        const number = Number(value);
 
-
-                        if (
-                            value ===
-                            "FREE"
-                        ) {
-
-                            cell.classList.add(
-                                "marked"
-                            );
-
-                            return;
-                        }
-
-
-                        const number =
-                            Number(
-                                value
-                            );
-
-
-                        if (
-                            calledNumbers.includes(
-                                number
-                            )
-                        ) {
-
-                            cell.classList.add(
-                                "marked"
-                            );
-                        }
-                    };
-            }
-        );
-}
+        if (calledNumbers.includes(number)) {
+            cell.classList.toggle("marked");
+        } else {
+            alert("This number has not been called yet.");
+        }
+    };
+});
 
 
 // ===============================
@@ -979,9 +934,17 @@ function checkWinner() {
         pattern.every(index => marked[index])
     );
 
-    if (winner) {
-        alert("🎉 BINGO! You are the winner!");
-    } else {
-        alert("❌ Not a winning bingo yet.");
+if (winner) {
+    stopBingoGame();
+
+    await supabaseClient
+        .from("games")
+        .update({ status: "finished" })
+        .eq("id", currentGame.id);
+
+    alert("🎉 BINGO! You are the winner!");
+} else {
+    alert("❌ Not a winning bingo yet.");
+}
     }
 }
