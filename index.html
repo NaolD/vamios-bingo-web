@@ -1,408 +1,236 @@
 <!DOCTYPE html>
+
 <html lang="en">
-
 <head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VAMIOS Bingo</title>
 
-    <meta charset="UTF-8">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-    <title>VAMIOS Bingo</title>
-
-
-    <!-- =====================================
-         TELEGRAM WEB APP
-    ====================================== -->
-
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-
-
-    <!-- =====================================
-         SUPABASE
-    ====================================== -->
-
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-
-    <!-- =====================================
-         STYLE
-    ====================================== -->
-
-    <link
-        rel="stylesheet"
-        href="style.css"
-    >
-
+  <link rel="stylesheet" href="style.css" />
 </head>
-
 
 <body>
 
-
-<!-- ==========================================
-     MAIN APP
-=========================================== -->
-
 <div id="app">
 
-
-    <!-- ======================================
-         LOBBY
-    ======================================= -->
-
-    <section
-        id="lobbyScreen"
-        class="screen"
-    >
-
-        <h1>🎱 VAMIOS Bingo</h1>
-
-        <p id="connectionStatus">
-            Connecting...
-        </p>
-
-        <p id="playerInfo"></p>
-
-        <p id="balanceInfo">
-            💰 Balance: 0.00 ETB
-        </p>
-
-
-        <div class="menu-buttons">
-
-            <button
-                onclick="goToWallet()"
-            >
-                💰 Wallet
-            </button>
-
-            <button
-                onclick="goToBoards()"
-            >
-                🎱 Play Bingo
-            </button>
-
-        </div>
-
-
-        <h2>Available Rooms</h2>
-
-
-        <div id="roomsContainer">
-
-            Loading rooms...
-
-        </div>
-
-    </section>
-
-
-
-    <!-- ======================================
-         BOARD SCREEN
-    ======================================= -->
-
-    <section
-        id="boardScreen"
-        class="screen hidden"
-    >
-
-        <h2>🎱 Select Your Number</h2>
-
-        <p>
-            Select one available number.
-        </p>
-
-
-        <div id="boardContainer"></div>
-
-
-        <h3>Board Preview</h3>
-
-        <div id="cardPreview"></div>
-
-
-        <button
-            id="startBtn"
-            disabled
-        >
-            START GAME
-        </button>
-
-
-        <button
-            onclick="goToLobby()"
-        >
-            Back
-        </button>
-
-    </section>
-
-
-
-    <!-- ======================================
-         WAITING SCREEN
-    ======================================= -->
-
-    <section
-        id="waitingScreen"
-        class="screen hidden"
-    >
-
-        <h2>⏳ Waiting Room</h2>
-
-
-        <p>
-            Room:
-            <strong id="waitingRoomName">
-                -
-            </strong>
-        </p>
-
-
-        <p>
-            Players:
-            <strong id="waitingPlayers">
-                0
-            </strong>
-        </p>
-
-
-        <p>
-            Prize Pool:
-            <strong>
-                <span id="waitingPrize">
-                    0.00
-                </span>
-                ETB
-            </strong>
-        </p>
-
-
-        <h1 id="countdown">
-            60
-        </h1>
-
-
-        <p>
-            Game will start automatically.
-        </p>
-
-    </section>
-
-
-
-    <!-- ======================================
-         GAME SCREEN
-    ======================================= -->
-
-    <section
-        id="gameScreen"
-        class="screen hidden"
-    >
-
-        <h2>🎱 VAMIOS Bingo</h2>
-
-
-        <!-- CURRENT CALL -->
-
-        <div id="currentCall">
-
-            <p>
-                Current Number
-            </p>
-
-            <h1 id="calledNumber">
-                --
-            </h1>
-
-        </div>
-
-
-        <!-- BINGO CARD -->
-
-        <div
-            id="bingoCard"
-            class="bingo-card"
-        ></div>
-
-
-<!-- CALLED HISTORY -->
-
-<h3>Called Numbers</h3>
-
-<div id="calledHistory"></div>
-
-
-        <!-- BINGO BUTTON -->
-
-        <button
-            id="bingoBtn"
-        >
-            🎉 BINGO!
-        </button>
-
-
-        <!-- WINNER -->
-
-        <div
-            id="winnerBox"
-            class="hidden"
-        >
-
-            <h2>
-                🏆 WINNER!
-            </h2>
-
-
-            <p id="winnerPattern">
-                Winning Pattern:
-            </p>
-
-
-            <p id="winnerPrize">
-                Prize:
-            </p>
-
-        </div>
-
-    </section>
-
-
-
-    <!-- ======================================
-         WALLET SCREEN
-    ======================================= -->
-
-    <section
-        id="walletScreen"
-        class="screen hidden"
-    >
-
-        <h2>💰 Wallet</h2>
-
-
-        <p id="walletBalance">
-            Balance: 0.00 ETB
-        </p>
-
-
-        <button
-            onclick="goToDeposit()"
-        >
-            💰 Deposit
-        </button>
-
-
-        <button
-            onclick="goToWithdraw()"
-        >
-            💸 Withdraw
-        </button>
-
-
-        <button
-            onclick="goToLobby()"
-        >
-            Back
-        </button>
-
-    </section>
-
-
-
-    <!-- ======================================
-         DEPOSIT SCREEN
-    ======================================= -->
-
-    <section
-        id="depositScreen"
-        class="screen hidden"
-    >
-
-        <h2>💰 Deposit</h2>
-
-
-        <p>
-            Deposits are handled through
-            the VAMIOS Bingo Telegram bot.
-        </p>
-
-
-        <p>
-            Please return to the Telegram bot
-            and tap <strong>Deposit</strong>.
-        </p>
-
-
-        <p>
-            Minimum deposit:
-            <strong>50 ETB</strong>
-        </p>
-
-
-        <button
-            id="depositBtn"
-        >
-            Open Deposit Instructions
-        </button>
-
-
-        <button
-            onclick="goToWallet()"
-        >
-            Back
-        </button>
-
-    </section>
-
-
-
-    <!-- ======================================
-         WITHDRAW SCREEN
-    ======================================= -->
-
-    <section
-        id="withdrawScreen"
-        class="screen hidden"
-    >
-
-        <h2>💸 Withdraw</h2>
-
-
-        <p>
-            Withdrawals are handled only
-            through the VAMIOS Bingo Telegram bot.
-        </p>
-
-
-        <p>
-            Please return to Telegram and
-            use the <strong>Withdraw</strong>
-            button.
-        </p>
-
-
-        <button
-            onclick="goToWallet()"
-        >
-            Back
-        </button>
-
-    </section>
-
-
+  <!-- =========================
+       LOBBY SCREEN
+  ========================== -->
+
+  <section id="lobbyScreen" class="screen">
+
+```
+<div class="lobby-header">
+  <h1>🎱 VAMIOS Bingo</h1>
+  <p id="connectionStatus">Connecting...</p>
+  <p id="playerInfo"></p>
 </div>
 
+<div class="wallet-bar">
+  <div class="wallet-box">
+    <span>Wallet</span>
+    <strong id="balanceInfo">0.00 ETB</strong>
+  </div>
 
+  <div class="wallet-box">
+    <span>Live Players</span>
+    <strong id="livePlayers">0</strong>
+  </div>
+</div>
 
-<!-- ==========================================
-     JAVASCRIPT FILES
-=========================================== -->
+<div class="jackpot-box">
+  <div class="jackpot-title">🎰 Jackpot</div>
 
+  <div class="jackpot-progress">
+    <div class="jackpot-fill" style="width:25%"></div>
+  </div>
+
+  <div class="jackpot-amount">250 / 1000 ETB</div>
+</div>
+
+<div class="menu-buttons">
+  <button onclick="goToWallet()">💰 Wallet</button>
+  <button onclick="goToBoards()">🎱 Play Bingo</button>
+</div>
+
+<h2>Available Games</h2>
+
+<div id="roomsContainer">
+
+  <div class="game-card" onclick="selectRoomByFee(10)">
+    <div class="game-top">
+      <span class="bet">10 ETB</span>
+      <span class="status ready">READY</span>
+    </div>
+
+    <div class="game-middle">
+      <div>
+        Prize
+        <strong id="prize10">256 ETB</strong>
+      </div>
+
+      <div>
+        Players
+        <strong id="players10">32/100</strong>
+      </div>
+    </div>
+
+    <button class="join-btn">JOIN</button>
+  </div>
+
+  <div class="game-card" onclick="selectRoomByFee(15)">
+    <div class="game-top">
+      <span class="bet">15 ETB</span>
+      <span class="status ready">READY</span>
+    </div>
+
+    <div class="game-middle">
+      <div>
+        Prize
+        <strong id="prize15">360 ETB</strong>
+      </div>
+
+      <div>
+        Players
+        <strong id="players15">30/100</strong>
+      </div>
+    </div>
+
+    <button class="join-btn">JOIN</button>
+  </div>
+
+  <div class="game-card" onclick="selectRoomByFee(25)">
+    <div class="game-top">
+      <span class="bet">25 ETB</span>
+      <span class="status ready">READY</span>
+    </div>
+
+    <div class="game-middle">
+      <div>
+        Prize
+        <strong id="prize25">600 ETB</strong>
+      </div>
+
+      <div>
+        Players
+        <strong id="players25">24/100</strong>
+      </div>
+    </div>
+
+    <button class="join-btn">JOIN</button>
+  </div>
+
+  <div class="game-card" onclick="selectRoomByFee(50)">
+    <div class="game-top">
+      <span class="bet">50 ETB</span>
+      <span class="status ready">READY</span>
+    </div>
+
+    <div class="game-middle">
+      <div>
+        Prize
+        <strong id="prize50">1200 ETB</strong>
+      </div>
+
+      <div>
+        Players
+        <strong id="players50">12/100</strong>
+      </div>
+    </div>
+
+    <button class="join-btn">JOIN</button>
+  </div>
+
+</div>
+```
+
+  </section>
+
+  <!-- BOARD SCREEN -->
+
+  <section id="boardScreen" class="screen hidden">
+    <h2>🎱 Select Your Number</h2>
+    <p>Select one available number.</p>
+    <div id="boardContainer"></div>
+    <h3>Board Preview</h3>
+    <div id="cardPreview"></div>
+    <button id="startBtn" disabled>START GAME</button>
+    <button onclick="goToLobby()">Back</button>
+  </section>
+
+  <!-- WAITING SCREEN -->
+
+  <section id="waitingScreen" class="screen hidden">
+    <h2>⏳ Waiting Room</h2>
+    <p>Room: <strong id="waitingRoomName">-</strong></p>
+    <p>Players: <strong id="waitingPlayers">0</strong></p>
+    <p>Prize Pool: <strong><span id="waitingPrize">0.00</span> ETB</strong></p>
+    <h1 id="countdown">60</h1>
+    <p>Game will start automatically.</p>
+  </section>
+
+  <!-- GAME SCREEN -->
+
+  <section id="gameScreen" class="screen hidden">
+    <h2>🎱 VAMIOS Bingo</h2>
+
+```
+<div id="currentCall">
+  <p>Current Number</p>
+  <h1 id="calledNumber">--</h1>
+</div>
+
+<div id="bingoCard" class="bingo-card"></div>
+
+<h3>Called Numbers</h3>
+<div id="calledHistory"></div>
+
+<button id="bingoBtn">🎉 BINGO!</button>
+
+<div id="winnerBox" class="hidden">
+  <h2>🏆 WINNER!</h2>
+  <p id="winnerPattern">Winning Pattern:</p>
+  <p id="winnerPrize">Prize:</p>
+</div>
+```
+
+  </section>
+
+  <!-- WALLET SCREEN -->
+
+  <section id="walletScreen" class="screen hidden">
+    <h2>💰 Wallet</h2>
+    <p id="walletBalance">Balance: 0.00 ETB</p>
+    <button onclick="goToDeposit()">💰 Deposit</button>
+    <button onclick="goToWithdraw()">💸 Withdraw</button>
+    <button onclick="goToLobby()">Back</button>
+  </section>
+
+  <!-- DEPOSIT SCREEN -->
+
+  <section id="depositScreen" class="screen hidden">
+    <h2>💰 Deposit</h2>
+    <p>Deposits are handled through the VAMIOS Bingo Telegram bot.</p>
+    <p>Please return to the Telegram bot and tap <strong>Deposit</strong>.</p>
+    <p>Minimum deposit: <strong>50 ETB</strong></p>
+    <button id="depositBtn">Open Deposit Instructions</button>
+    <button onclick="goToWallet()">Back</button>
+  </section>
+
+  <!-- WITHDRAW SCREEN -->
+
+  <section id="withdrawScreen" class="screen hidden">
+    <h2>💸 Withdraw</h2>
+    <p>Withdrawals are handled only through the VAMIOS Bingo Telegram bot.</p>
+    <p>Please return to Telegram and use the <strong>Withdraw</strong> button.</p>
+    <button onclick="goToWallet()">Back</button>
+  </section>
+
+</div>
 
 <script src="supabase.js"></script>
 
@@ -424,162 +252,5 @@
 
 <script src="deposit.js"></script>
 
-
-
-<!-- ==========================================
-     TELEGRAM INITIALIZATION
-=========================================== -->
-
-<script>
-
-document.addEventListener(
-    "DOMContentLoaded",
-    async () => {
-
-
-        // ======================================
-        // TELEGRAM
-        // ======================================
-
-        const tg =
-            window.Telegram &&
-            window.Telegram.WebApp;
-
-
-        const statusElement =
-            document.getElementById(
-                "connectionStatus"
-            );
-
-
-        const playerElement =
-            document.getElementById(
-                "playerInfo"
-            );
-
-
-        const balanceElement =
-            document.getElementById(
-                "balanceInfo"
-            );
-
-
-        if (!tg) {
-
-            statusElement.innerText =
-                "❌ Please open VAMIOS Bingo from Telegram.";
-
-            return;
-        }
-
-
-        tg.ready();
-
-        tg.expand();
-
-
-        // ======================================
-        // TELEGRAM USER
-        // ======================================
-
-        const telegramUser =
-            tg.initDataUnsafe &&
-            tg.initDataUnsafe.user;
-
-
-        if (!telegramUser) {
-
-            statusElement.innerText =
-                "❌ Please open VAMIOS Bingo from Telegram.";
-
-            return;
-        }
-
-
-        statusElement.innerText =
-            "✅ Telegram connected";
-
-
-        playerElement.innerText =
-            "👤 " +
-            (
-                telegramUser.first_name ||
-                "Player"
-            );
-
-
-        console.log(
-            "Telegram user:",
-            telegramUser
-        );
-
-
-        // ======================================
-        // REGISTER / LOAD USER
-        // ======================================
-
-        const user =
-            await getCurrentUser();
-
-
-        if (!user) {
-
-            balanceElement.innerText =
-                "❌ Player not found.";
-
-            return;
-        }
-
-
-        // ======================================
-        // LOAD BALANCE
-        // ======================================
-
-        const balance =
-            await getBalance(
-                user.id
-            );
-
-
-        balanceElement.innerText =
-            "💰 Balance: " +
-            Number(balance).toFixed(2) +
-            " ETB";
-
-
-        const walletBalance =
-            document.getElementById(
-                "walletBalance"
-            );
-
-
-        if (walletBalance) {
-
-            walletBalance.innerText =
-                "Balance: " +
-                Number(balance).toFixed(2) +
-                " ETB";
-        }
-
-
-        // ======================================
-        // LOAD ROOMS
-        // ======================================
-
-        if (
-            typeof loadRooms ===
-            "function"
-        ) {
-
-            loadRooms();
-        }
-
-    }
-);
-
-</script>
-
-
 </body>
-
 </html>
