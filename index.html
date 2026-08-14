@@ -162,16 +162,46 @@
     <button onclick="goToLobby()">Back</button>
   </section>
 
-  <!-- WAITING SCREEN -->
+<!-- WAITING SCREEN -->
+<section id="waitingScreen" class="screen hidden waiting-screen">
 
-  <section id="waitingScreen" class="screen hidden">
-    <h2>⏳ Waiting Room</h2>
-    <p>Room: <strong id="waitingRoomName">-</strong></p>
-    <p>Players: <strong id="waitingPlayers">0</strong></p>
-    <p>Prize Pool: <strong><span id="waitingPrize">0.00</span> ETB</strong></p>
-    <h1 id="countdown">60</h1>
-    <p>Game will start automatically.</p>
-  </section>
+  <div class="waiting-card">
+
+    <h2 class="waiting-title">VAMIOS Bingo</h2>
+
+    <p class="waiting-subtitle">Preparing your game</p>
+
+    <div class="waiting-divider"></div>
+
+    <div class="waiting-row">
+      <span>Room</span>
+      <strong id="waitingRoomName">-</strong>
+    </div>
+
+    <div class="waiting-row">
+      <span>Players</span>
+      <strong><span id="waitingPlayers">0</span> / 100</strong>
+    </div>
+
+    <div class="waiting-row">
+      <span>Prize Pool</span>
+      <strong><span id="waitingPrize">0.00</span> ETB</strong>
+    </div>
+
+    <div class="waiting-divider"></div>
+
+    <div class="countdown-circle">
+      <div class="countdown-label">STARTS IN</div>
+      <div id="countdown" class="countdown-time">60</div>
+    </div>
+
+    <p class="waiting-note">
+      Waiting for players... The game will start automatically when the countdown reaches zero.
+    </p>
+
+  </div>
+
+</section>
 
   <!-- GAME SCREEN -->
 
