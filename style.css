@@ -265,9 +265,14 @@ background:#16a34a;
 color:white;
 font-size:16px;
 font-weight:bold;
+cursor:pointer;
 }
 
-#startBtn:disabled
+#startBtn:disabled{
+background:#9ca3af;
+cursor:not-allowed;
+opacity:0.7;
+}
 
 /* =====================================
 WAITING ROOM
@@ -472,4 +477,37 @@ opacity:0.95;
     color:#bdbdbd;
     line-height:1.5;
     margin-top:18px;
+}
+/* ===============================
+   WAITING PLAYER LIST
+   =============================== */
+
+.players-title{
+    color:#ffffff;
+    font-size:18px;
+    margin:0 0 12px;
+}
+
+.player-list{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    max-height:180px;
+    overflow:auto;
+}
+
+.player-item{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    background:#111;
+    border:1px solid #333;
+    border-radius:12px;
+    padding:10px 12px;
+    color:#ffffff;
+}
+
+.player-status{
+    color:#22c55e;
+    font-size:16px;
 }
