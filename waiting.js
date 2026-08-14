@@ -6,6 +6,8 @@
 let waitingRoom = null;
 let waitingGame = null;
 let waitingTimer = null;
+let waitingRoomChannel = null;
+let waitingGameChannel = null;
 
 
 // ==========================================
@@ -239,7 +241,9 @@ async function loadWaiting() {
 
 function startWaitingCountdown(
     endTime
-) {
+)
+subscribeWaitingRealtime(room.id, game.id);
+{
 
     if (waitingTimer) {
 
@@ -509,20 +513,109 @@ function openGameScreen() {
     }
 }
 
+// ==========================================
+// REAL-TIME WAITING ROOM
+// ==========================================
 
-// ==========================================
-// CLEANUP
-// ==========================================
+function subscribeWaitingRealtime(roomId, gameId) {
+
+    // Remove old subscriptions
+    if (waitingRoomChannel) {
+        supabaseClient.removeChannel(waitingRoomChannel);
+    }
+
+    if (waitingGameChannel) {
+        supabaseClient.removeChannel(waitingGameChannel);
+    }
+
+    // Watch room updates
+    waitingRoomChannel = supabaseClient
+        .channel("room-" + roomId)
+        .on(
+            "postgres_changes",
+            {
+                event: "UPDATE",
+                schema: "public",
+                table: "rooms",
+                filter: "id=eq." + roomId
+            },
+            payload => {
+
+                const room = payload.new;
+
+                waitingRoom = room;
+
+                // If another player started the game
+                if (room.status === "playing") {
+                    stopWaitingTimer();
+                    openGameScreen();
+                }
+
+                // If the shared start time changed
+                if (room.next_game_time) {
+                    const endTime = new Date(room.next_game_time).getTime();
+                    startWaitingCountdown(endTime);
+                }
+            }
+        )
+        .subscribe();
+
+    // Watch game updates
+    waitingGameChannel = supabaseClient
+        .channel("game-" + gameId)
+        .on(
+            "postgres_changes",
+            {
+                event: "UPDATE",
+                schema: "public",
+                table: "games",
+                filter: "id=eq." + gameId
+            },
+            payload => {
+
+                const game = payload.new;
+
+                waitingGame = game;
+
+                const players =
+                    document.getElementById("waitingPlayers");
+
+                const prize =
+                    document.getElementById("waitingPrize");
+
+                if (players) {
+                    players.innerText =
+                        Number(game.player_count || 0);
+                }
+
+                if (prize) {
+                    prize.innerText =
+                        Number(game.prize_pool || 0).toFixed(2) + " ETB";
+                }
+
+                if (game.status === "playing") {
+                    stopWaitingTimer();
+                    openGameScreen();
+                }
+            }
+        )
+        .subscribe();
+}
 
 function stopWaitingTimer() {
 
     if (waitingTimer) {
+        clearInterval(waitingTimer);
+        waitingTimer = null;
+    }
 
-        clearInterval(
-            waitingTimer
-        );
+    if (waitingRoomChannel) {
+        supabaseClient.removeChannel(waitingRoomChannel);
+        waitingRoomChannel = null;
+    }
 
-        waitingTimer =
-            null;
+    if (waitingGameChannel) {
+        supabaseClient.removeChannel(waitingGameChannel);
+        waitingGameChannel = null;
     }
 }
