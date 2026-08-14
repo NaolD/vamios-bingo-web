@@ -6,6 +6,7 @@
 let waitingRoom = null;
 let waitingGame = null;
 let waitingTimer = null;
+
 let waitingRoomChannel = null;
 let waitingGameChannel = null;
 
@@ -17,221 +18,188 @@ let waitingGameChannel = null;
 async function loadWaiting() {
 
     const roomId =
-        Number(
-            localStorage.getItem(
-                "room_id"
-            )
-        );
+        Number(localStorage.getItem("room_id"));
 
     const gameId =
-        Number(
-            localStorage.getItem(
-                "game_id"
-            )
-        );
-
+        Number(localStorage.getItem("game_id"));
 
     if (!roomId || !gameId) {
 
-        alert(
-            "Missing room or game."
-        );
+        alert("Missing room or game.");
 
-        showScreen(
-            "lobbyScreen"
-        );
+        showScreen("lobbyScreen");
 
         return;
     }
 
-
-    // ==========================================
+    // -------------------------------
     // LOAD ROOM
-    // ==========================================
+    // -------------------------------
 
     const {
         data: room,
         error: roomError
-    } = await supabaseClient
-        .from("rooms")
-        .select("*")
-        .eq(
-            "id",
-            roomId
-        )
-        .single();
-
+    } =
+        await supabaseClient
+            .from("rooms")
+            .select("*")
+            .eq("id", roomId)
+            .single();
 
     if (roomError) {
 
-        console.error(
-            "Waiting room error:",
-            roomError
-        );
+        console.error(roomError);
 
-        alert(
-            roomError.message
-        );
+        alert(roomError.message);
 
         return;
     }
 
+    waitingRoom = room;
 
-    waitingRoom =
-        room;
-
-
-    // ==========================================
+    // -------------------------------
     // LOAD GAME
-    // ==========================================
+    // -------------------------------
 
     const {
         data: game,
         error: gameError
-    } = await supabaseClient
-        .from("games")
-        .select("*")
-        .eq(
-            "id",
-            gameId
-        )
-        .single();
-
+    } =
+        await supabaseClient
+            .from("games")
+            .select("*")
+            .eq("id", gameId)
+            .single();
 
     if (gameError) {
 
-        console.error(
-            "Waiting game error:",
-            gameError
-        );
+        console.error(gameError);
 
-        alert(
-            gameError.message
-        );
+        alert(gameError.message);
 
         return;
     }
 
+    waitingGame = game;
 
-    waitingGame =
-        game;
-
-
-    // ==========================================
-    // UPDATE WAITING SCREEN
-    // ==========================================
+    // -------------------------------
+    // UPDATE UI
+    // -------------------------------
 
     const roomName =
-        document.getElementById(
-            "waitingRoomName"
-        );
+        document.getElementById("waitingRoomName");
 
     const players =
-        document.getElementById(
-            "waitingPlayers"
-        );
+        document.getElementById("waitingPlayers");
 
     const prize =
-        document.getElementById(
-            "waitingPrize"
-        );
-
+        document.getElementById("waitingPrize");
 
     if (roomName) {
-
         roomName.innerText =
-            room.name ||
-            "Bingo Room";
+            room.name || "Bingo Room";
     }
-
 
     if (players) {
-
         players.innerText =
-            Number(
-                game.player_count || 0
-            );
+            Number(game.player_count || 0);
     }
-
 
     if (prize) {
-
         prize.innerText =
-            Number(
-                game.prize_pool || 0
-            ).toFixed(2) +
-            " ETB";
+            Number(game.prize_pool || 0).toFixed(2);
     }
 
-
-    // ==========================================
-    // GET SHARED GAME START TIME
-    // ==========================================
+    // -------------------------------
+    // SHARED TIMER
+    // -------------------------------
 
     let endTime = 0;
 
-
-    if (
-        room.next_game_time
-    ) {
-
+    if (room.next_game_time) {
         endTime =
-            new Date(
-                room.next_game_time
-            ).getTime();
+            new Date(room.next_game_time).getTime();
     }
 
-
-    // ==========================================
-    // CREATE SHARED 60 SECOND TIME
-    // ==========================================
-
-    if (
-        !endTime ||
-        endTime <= Date.now()
-    ) {
+    if (!endTime || endTime <= Date.now()) {
 
         endTime =
-            Date.now() +
-            60000;
+            Date.now() + 60000;
 
-
-        const {
-            error: updateError
-        } =
-            await supabaseClient
-                .from("rooms")
-                .update({
-                    next_game_time:
-                        new Date(
-                            endTime
-                        ).toISOString(),
-
-                    phase:
-                        "waiting",
-
-                    status:
-                        "waiting"
-                })
-                .eq(
-                    "id",
-                    room.id
-                );
-
-
-        if (updateError) {
-
-            console.error(
-                "Timer update error:",
-                updateError
-            );
-        }
+        await supabaseClient
+            .from("rooms")
+            .update({
+                next_game_time:
+                    new Date(endTime).toISOString(),
+                phase: "waiting",
+                status: "waiting"
+            })
+            .eq("id", room.id);
     }
 
+    startWaitingCountdown(endTime);
 
-    startWaitingCountdown(
-        endTime
-    );
+    await loadWaitingPlayers();
+
+    subscribeWaitingRealtime(room.id, game.id);
+}
+
+
+// ==========================================
+// LOAD PLAYER LIST
+// ==========================================
+
+async function loadWaitingPlayers() {
+
+    if (!waitingGame) return;
+
+    const list =
+        document.getElementById("waitingPlayerList");
+
+    if (!list) return;
+
+    const {
+        data: players,
+        error
+    } =
+        await supabaseClient
+            .from("game_players")
+            .select("user_id, ready")
+            .eq("game_id", waitingGame.id);
+
+    if (error) {
+        console.error(error);
+        return;
+    }
+
+    if (!players || players.length === 0) {
+
+        list.innerHTML =
+            '<div class="player-item"><span class="player-status">●</span>Waiting for players...</div>';
+
+        return;
+    }
+
+    list.innerHTML = "";
+
+    players.forEach((player, index) => {
+
+        const item =
+            document.createElement("div");
+
+        item.className =
+            "player-item";
+
+        item.innerHTML =
+            '<span class="player-status">●</span>Player ' +
+            (index + 1) +
+            (player.ready
+                ? ' <span style="color:#22c55e">(Ready)</span>'
+                : '');
+
+        list.appendChild(item);
+
+    });
 }
 
 
@@ -239,86 +207,44 @@ async function loadWaiting() {
 // SHARED WAITING COUNTDOWN
 // ==========================================
 
-function startWaitingCountdown(
-    endTime
-)
-subscribeWaitingRealtime(room.id, game.id);
-{
+function startWaitingCountdown(endTime) {
 
     if (waitingTimer) {
-
-        clearInterval(
-            waitingTimer
-        );
+        clearInterval(waitingTimer);
     }
 
-
     const countdown =
-        document.getElementById(
-            "countdown"
-        );
+        document.getElementById("countdown");
 
-
-    // ==========================================
-    // UPDATE IMMEDIATELY
-    // ==========================================
-
-    updateWaitingTime(
-        endTime,
-        countdown
-    );
-
+    updateWaitingTime(endTime, countdown);
 
     waitingTimer =
-        setInterval(
-            async () => {
+        setInterval(async () => {
 
-                const remaining =
-                    Math.max(
-                        0,
-                        Math.ceil(
-                            (
-                                endTime -
-                                Date.now()
-                            ) / 1000
-                        )
-                    );
+            const remaining =
+                Math.max(
+                    0,
+                    Math.ceil((endTime - Date.now()) / 1000)
+                );
 
+            if (countdown) {
+                countdown.innerText = remaining;
+            }
 
-                // Keep countdown available internally.
+            if (remaining <= 0) {
+
+                clearInterval(waitingTimer);
+
+                waitingTimer = null;
+
                 if (countdown) {
-
-                    countdown.innerText =
-                        remaining;
+                    countdown.innerText = "Starting...";
                 }
 
+                await startWaitingGame();
+            }
 
-                if (
-                    remaining <= 0
-                ) {
-
-                    clearInterval(
-                        waitingTimer
-                    );
-
-                    waitingTimer =
-                        null;
-
-
-                    if (countdown) {
-
-                        countdown.innerText =
-                            "Starting...";
-                    }
-
-
-                    await startWaitingGame();
-
-                }
-
-            },
-            1000
-        );
+        }, 1000);
 }
 
 
@@ -326,30 +252,121 @@ subscribeWaitingRealtime(room.id, game.id);
 // UPDATE TIMER
 // ==========================================
 
-function updateWaitingTime(
-    endTime,
-    countdown
-) {
+function updateWaitingTime(endTime, countdown) {
 
-    if (!countdown) {
-        return;
-    }
-
+    if (!countdown) return;
 
     const remaining =
         Math.max(
             0,
-            Math.ceil(
-                (
-                    endTime -
-                    Date.now()
-                ) / 1000
-            )
+            Math.ceil((endTime - Date.now()) / 1000)
         );
 
+    countdown.innerText = remaining;
+}
 
-    countdown.innerText =
-        remaining;
+
+// ==========================================
+// REAL-TIME SUBSCRIPTIONS
+// ==========================================
+
+function subscribeWaitingRealtime(roomId, gameId) {
+
+    if (waitingRoomChannel) {
+        supabaseClient.removeChannel(waitingRoomChannel);
+    }
+
+    if (waitingGameChannel) {
+        supabaseClient.removeChannel(waitingGameChannel);
+    }
+
+    // -------------------------------
+    // ROOM UPDATES
+    // -------------------------------
+
+    waitingRoomChannel =
+        supabaseClient
+            .channel("room-" + roomId)
+            .on(
+                "postgres_changes",
+                {
+                    event: "UPDATE",
+                    schema: "public",
+                    table: "rooms",
+                    filter: "id=eq." + roomId
+                },
+                payload => {
+
+                    waitingRoom = payload.new;
+
+                    if (waitingRoom.status === "playing") {
+
+                        stopWaitingTimer();
+
+                        openGameScreen();
+
+                        return;
+                    }
+
+                    if (waitingRoom.next_game_time) {
+
+                        const endTime =
+                            new Date(waitingRoom.next_game_time).getTime();
+
+                        startWaitingCountdown(endTime);
+                    }
+
+                }
+            )
+            .subscribe();
+
+    // -------------------------------
+    // GAME UPDATES
+    // -------------------------------
+
+    waitingGameChannel =
+        supabaseClient
+            .channel("game-" + gameId)
+            .on(
+                "postgres_changes",
+                {
+                    event: "UPDATE",
+                    schema: "public",
+                    table: "games",
+                    filter: "id=eq." + gameId
+                },
+                payload => {
+
+                    waitingGame = payload.new;
+
+                    const players =
+                        document.getElementById("waitingPlayers");
+
+                    const prize =
+                        document.getElementById("waitingPrize");
+
+                    if (players) {
+                        players.innerText =
+                            Number(waitingGame.player_count || 0);
+                    }
+
+                    if (prize) {
+                        prize.innerText =
+                            Number(waitingGame.prize_pool || 0).toFixed(2);
+                    }
+
+                    loadWaitingPlayers();
+
+                    if (waitingGame.status === "playing") {
+
+                        stopWaitingTimer();
+
+                        openGameScreen();
+                    }
+
+                }
+            )
+            .subscribe();
 }
 
 
@@ -359,129 +376,40 @@ function updateWaitingTime(
 
 async function startWaitingGame() {
 
-    if (
-        !waitingRoom ||
-        !waitingGame
-    ) {
-
-        return;
-    }
-
-
-    // ==========================================
-    // CHECK CURRENT ROOM STATE
-    // ==========================================
+    if (!waitingRoom || !waitingGame) return;
 
     const {
-        data: currentRoom,
-        error: roomError
+        data: currentRoom
     } =
         await supabaseClient
             .from("rooms")
-            .select(
-                "status, phase, current_game_id"
-            )
-            .eq(
-                "id",
-                waitingRoom.id
-            )
+            .select("status")
+            .eq("id", waitingRoom.id)
             .single();
 
-
-    if (roomError) {
-
-        console.error(
-            "Room state error:",
-            roomError
-        );
-
-        return;
-    }
-
-
-    // ==========================================
-    // IF ANOTHER PLAYER ALREADY STARTED IT
-    // ==========================================
-
-    if (
-        currentRoom.status ===
-        "playing"
-    ) {
+    if (currentRoom && currentRoom.status === "playing") {
 
         openGameScreen();
 
         return;
     }
 
+    await supabaseClient
+        .from("rooms")
+        .update({
+            status: "playing",
+            phase: "playing",
+            current_game_id: waitingGame.id
+        })
+        .eq("id", waitingRoom.id);
 
-    // ==========================================
-    // START ROOM
-    // ==========================================
-
-    const {
-        error: roomUpdateError
-    } =
-        await supabaseClient
-            .from("rooms")
-            .update({
-                status:
-                    "playing",
-
-                phase:
-                    "playing",
-
-                current_game_id:
-                    waitingGame.id
-            })
-            .eq(
-                "id",
-                waitingRoom.id
-            );
-
-
-    if (roomUpdateError) {
-
-        console.error(
-            "Room start error:",
-            roomUpdateError
-        );
-
-        return;
-    }
-
-
-    // ==========================================
-    // START GAME
-    // ==========================================
-
-    const {
-        error: gameUpdateError
-    } =
-        await supabaseClient
-            .from("games")
-            .update({
-                status:
-                    "playing",
-
-                started_at:
-                    new Date().toISOString()
-            })
-            .eq(
-                "id",
-                waitingGame.id
-            );
-
-
-    if (gameUpdateError) {
-
-        console.error(
-            "Game start error:",
-            gameUpdateError
-        );
-
-        return;
-    }
-
+    await supabaseClient
+        .from("games")
+        .update({
+            status: "playing",
+            started_at: new Date().toISOString()
+        })
+        .eq("id", waitingGame.id);
 
     openGameScreen();
 }
@@ -493,114 +421,18 @@ async function startWaitingGame() {
 
 function openGameScreen() {
 
-    showScreen(
-        "gameScreen"
-    );
+    showScreen("gameScreen");
 
-
-    if (
-        typeof startBingoGame ===
-        "function"
-    ) {
-
+    if (typeof startBingoGame === "function") {
         startBingoGame();
-
-    } else {
-
-        console.error(
-            "startBingoGame() not found"
-        );
     }
+
 }
 
+
 // ==========================================
-// REAL-TIME WAITING ROOM
+// CLEANUP
 // ==========================================
-
-function subscribeWaitingRealtime(roomId, gameId) {
-
-    // Remove old subscriptions
-    if (waitingRoomChannel) {
-        supabaseClient.removeChannel(waitingRoomChannel);
-    }
-
-    if (waitingGameChannel) {
-        supabaseClient.removeChannel(waitingGameChannel);
-    }
-
-    // Watch room updates
-    waitingRoomChannel = supabaseClient
-        .channel("room-" + roomId)
-        .on(
-            "postgres_changes",
-            {
-                event: "UPDATE",
-                schema: "public",
-                table: "rooms",
-                filter: "id=eq." + roomId
-            },
-            payload => {
-
-                const room = payload.new;
-
-                waitingRoom = room;
-
-                // If another player started the game
-                if (room.status === "playing") {
-                    stopWaitingTimer();
-                    openGameScreen();
-                }
-
-                // If the shared start time changed
-                if (room.next_game_time) {
-                    const endTime = new Date(room.next_game_time).getTime();
-                    startWaitingCountdown(endTime);
-                }
-            }
-        )
-        .subscribe();
-
-    // Watch game updates
-    waitingGameChannel = supabaseClient
-        .channel("game-" + gameId)
-        .on(
-            "postgres_changes",
-            {
-                event: "UPDATE",
-                schema: "public",
-                table: "games",
-                filter: "id=eq." + gameId
-            },
-            payload => {
-
-                const game = payload.new;
-
-                waitingGame = game;
-
-                const players =
-                    document.getElementById("waitingPlayers");
-
-                const prize =
-                    document.getElementById("waitingPrize");
-
-                if (players) {
-                    players.innerText =
-                        Number(game.player_count || 0);
-                }
-
-                if (prize) {
-                    prize.innerText =
-                        Number(game.prize_pool || 0).toFixed(2) + " ETB";
-                }
-
-                if (game.status === "playing") {
-                    stopWaitingTimer();
-                    openGameScreen();
-                }
-            }
-        )
-        .subscribe();
-}
 
 function stopWaitingTimer() {
 
