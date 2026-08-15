@@ -394,9 +394,7 @@ async function startNumberCalling(gameId) {
 
 
   // Only host calls numbers
-  const isHost =
-    localStorage.getItem('isHost') === 'true';
-
+  const isHost = true;
 
   console.log(
     'Is host:',
