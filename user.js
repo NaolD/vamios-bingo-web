@@ -336,3 +336,17 @@ function getTelegramUser() {
     );
 
 }
+
+
+// ==========================================
+// MAKE FUNCTIONS AVAILABLE TO OTHER FILES
+// ==========================================
+
+window.getCurrentUser =
+    getCurrentUser;
+
+window.getTelegramUserId =
+    getTelegramUserId;
+
+window.getTelegramUser =
+    getTelegramUser;
