@@ -1,484 +1,288 @@
 // ===============================
-// VAMIOS BINGO
-// BOARDS.JS
+// VAMIOS BINGO WINNER CHECK
 // ===============================
 
-let selectedBoard = null;
+function isMarked(value) {
 
+  if (value === 'FREE') return true;
 
-// ===============================
-// LOAD BOARDS
-// ===============================
+  return calledNumbers.includes(value);
 
-async function loadBoards() {
-
-    const container =
-        document.getElementById("boardContainer");
-
-    if (!container) {
-        console.log("Board container not found");
-        return;
-    }
-
-    container.innerHTML = "Loading boards...";
-
-    const { data, error } =
-        await supabaseClient
-            .from("boards")
-            .select("*")
-            .order("board_number");
-
-    if (error) {
-        console.error("Load boards error:", error);
-        container.innerHTML = "Cannot load boards";
-        return;
-    }
-
-    container.innerHTML = "";
-
-    if (!data || data.length === 0) {
-        container.innerHTML = "No boards available";
-        return;
-    }
-
-    data.forEach(board => {
-
-        const box =
-            document.createElement("div");
-
-        box.className = "board";
-
-        box.innerText =
-            board.board_number;
-
-        box.onclick = () => {
-            selectBoard(board, box);
-        };
-
-        container.appendChild(box);
-    });
 }
 
 
 // ===============================
-// SELECT BOARD
+// HORIZONTAL
 // ===============================
 
-function selectBoard(board, box) {
+function checkHorizontal() {
 
-    document
-        .querySelectorAll(".board")
-        .forEach(item => {
-            item.classList.remove("selected");
-        });
+  for (let row = 0; row < 5; row++) {
 
-    box.classList.add("selected");
+    let ok = true;
 
-    selectedBoard = board;
+    for (let col = 0; col < 5; col++) {
 
-    localStorage.setItem(
-        "selected_board_id",
-        board.id
-    );
+      const value =
+        playerCard[row * 5 + col];
 
-    showCardPreview(board);
+      if (!isMarked(value)) {
+        ok = false;
+      }
 
-    const start =
-        document.getElementById("startBtn");
-
-    if (start) {
-        start.disabled = false;
-        start.classList.remove("disabled");
     }
+
+    if (ok) return true;
+
+  }
+
+  return false;
+
 }
 
 
 // ===============================
-// CARD PREVIEW
+// VERTICAL
 // ===============================
 
-function showCardPreview(board) {
+function checkVertical() {
 
-    const preview =
-        document.getElementById("cardPreview");
+  for (let col = 0; col < 5; col++) {
 
-    if (!preview) {
-        return;
-    }
-
-    const card = board.card_data;
-
-    const letters = [
-        "B",
-        "I",
-        "N",
-        "G",
-        "O"
-    ];
-
-    let html = `
-        <div class="preview-card">
-    `;
+    let ok = true;
 
     for (let row = 0; row < 5; row++) {
 
-        for (let col = 0; col < 5; col++) {
+      const value =
+        playerCard[row * 5 + col];
 
-            let value =
-                card[letters[col]][row];
+      if (!isMarked(value)) {
+        ok = false;
+      }
 
-            if (row === 2 && col === 2) {
-                value = "FREE";
-            }
-
-            html += `
-                <div class="preview-cell">
-                    ${value}
-                </div>
-            `;
-        }
     }
 
-    html += `
-        </div>
-    `;
+    if (ok) return true;
 
-    preview.innerHTML = html;
+  }
+
+  return false;
+
 }
 
 
 // ===============================
-// START GAME
+// MAIN DIAGONAL
 // ===============================
 
-document.addEventListener(
-    "DOMContentLoaded",
-    () => {
+function checkDiagonal() {
 
-        const startButton =
-            document.getElementById("startBtn");
+  for (let i = 0; i < 5; i++) {
 
-        if (!startButton) {
-            console.log("START BUTTON NOT FOUND");
-            return;
-        }
+    const value =
+      playerCard[i * 5 + i];
 
-        startButton.disabled = true;
-
-        startButton.addEventListener(
-            "click",
-            startSelectedGame
-        );
+    if (!isMarked(value)) {
+      return false;
     }
-);
+
+  }
+
+  return true;
+
+}
 
 
 // ===============================
-// START SELECTED GAME
+// REVERSE DIAGONAL
 // ===============================
 
-async function startSelectedGame() {
+function checkReverseDiagonal() {
 
-    const startButton =
-        document.getElementById("startBtn");
+  for (let i = 0; i < 5; i++) {
 
-    if (!selectedBoard) {
+    const value =
+      playerCard[i * 5 + (4 - i)];
 
-        alert("Select your number first.");
-
-        return;
+    if (!isMarked(value)) {
+      return false;
     }
 
-    if (
-        startButton &&
-        startButton.disabled
-    ) {
-        return;
-    }
-
-    // Prevent repeated taps
-    if (startButton) {
-        startButton.disabled = true;
-        startButton.innerText = "Joining...";
-    }
+  }
 
-    try {
-
-        const roomId =
-            Number(
-                localStorage.getItem("room_id")
-            );
-
-        if (!roomId) {
-            throw new Error("No room selected.");
-        }
-
-
-        // ===============================
-        // GET USER
-        // ===============================
-
-        const user =
-            await getCurrentUser();
-
-        if (!user) {
-            throw new Error("User not found.");
-        }
-
-
-        // ===============================
-        // GET ROOM
-        // ===============================
-
-        const {
-            data: room,
-            error: roomError
-        } =
-            await supabaseClient
-                .from("rooms")
-                .select("*")
-                .eq("id", roomId)
-                .single();
-
-        if (roomError) {
-            throw roomError;
-        }
-
-
-        // ===============================
-        // CHECK BALANCE FIRST
-        // ===============================
-
-        const balance =
-            await getBalance(user.id);
-
-        const entryFee =
-            Number(room.entry_fee);
-
-        if (Number(balance) < entryFee) {
-
-            alert(
-                "Insufficient balance.\n\n" +
-                "Entry fee: " +
-                entryFee.toFixed(2) +
-                " ETB"
-            );
-
-            return;
-        }
-
-
-        // ===============================
-        // FIND WAITING GAME
-        // ===============================
-
-        let {
-            data: game,
-            error: gameError
-        } =
-            await supabaseClient
-                .from("games")
-                .select("*")
-                .eq("room_id", roomId)
-                .eq("status", "waiting")
-                .order("id", { ascending: false })
-                .limit(1)
-                .maybeSingle();
-
-        if (gameError) {
-            throw gameError;
-        }
-
-
-        // ===============================
-        // CREATE GAME
-        // ===============================
-
-        if (!game) {
-
-            const gameCode =
-                "VAM-" + Date.now();
-
-            const {
-                data: newGame,
-                error: newGameError
-            } =
-                await supabaseClient
-                    .from("games")
-                    .insert([{
-                        game_code: gameCode,
-                        room_id: roomId,
-                        status: "waiting",
-                        player_count: 0,
-                        prize_pool: 0,
-                        commission: 0,
-                        called_numbers: []
-                    }])
-                    .select()
-                    .single();
-
-            if (newGameError) {
-                throw newGameError;
-            }
-
-            game = newGame;
-        }
-
-
-        // ===============================
-        // CHECK BOARD
-        // ===============================
-
-        const {
-            data: taken,
-            error: takenError
-        } =
-            await supabaseClient
-                .from("game_players")
-                .select("id")
-                .eq("game_id", game.id)
-                .eq("board_id", selectedBoard.id);
-
-        if (takenError) {
-            throw takenError;
-        }
-
-        if (taken && taken.length > 0) {
-
-            alert(
-                "This number is already taken."
-            );
-
-            return;
-        }
-
-
-        // ===============================
-        // DEDUCT BALANCE
-        // ===============================
-
-        const paid =
-            await deductBalance(
-                user.id,
-                entryFee
-            );
-
-        if (!paid) {
-            return;
-        }
-
-
-        // ===============================
-        // JOIN GAME
-        // ===============================
-
-        const {
-            error: joinError
-        } =
-            await supabaseClient
-                .from("game_players")
-                .insert([{
-                    game_id: game.id,
-                    user_id: user.id,
-                    board_id: selectedBoard.id,
-                    ready: true
-                }]);
-
-        if (joinError) {
-
-            // IMPORTANT:
-            // Return the entry fee if joining failed.
-
-            await supabaseClient
-                .from("wallets")
-                .update({
-                    balance: Number(balance)
-                })
-                .eq("user_id", user.id);
-
-            throw joinError;
-        }
-
-
-        // ===============================
-        // UPDATE GAME
-        // ===============================
-
-        const newCount =
-            Number(game.player_count || 0) + 1;
-
-        const totalPool =
-            newCount * entryFee;
-
-        const commission =
-            totalPool * 0.20;
-
-        const prizePool =
-            totalPool - commission;
-
-
-        const {
-            error: updateError
-        } =
-            await supabaseClient
-                .from("games")
-                .update({
-                    player_count: newCount,
-                    prize_pool: prizePool,
-                    commission: commission
-                })
-                .eq("id", game.id);
-
-        if (updateError) {
-            throw updateError;
-        }
-
-
-        // ===============================
-        // SAVE GAME
-        // ===============================
-
-        localStorage.setItem(
-            "game_id",
-            game.id
-        );
-
-        localStorage.setItem(
-            "selected_board_id",
-            selectedBoard.id
-        );
-
-
-        // ===============================
-        // OPEN WAITING
-        // ===============================
-
-        showScreen("waitingScreen");
-
-        if (
-            typeof loadWaiting ===
-            "function"
-        ) {
-            await loadWaiting();
-        }
-
-    } catch (error) {
-
-        console.error(
-            "START GAME ERROR:",
-            error
-        );
-
-        alert(
-            error.message ||
-            "Could not start the game."
-        );
-
-    } finally {
-
-        if (startButton) {
-            startButton.disabled = false;
-            startButton.innerText = "START GAME";
-        }
-    }
+  return true;
+
+}
+
+
+// ===============================
+// FOUR CORNERS
+// ===============================
+
+function checkFourCorners() {
+
+  const corners = [
+    playerCard[0],
+    playerCard[4],
+    playerCard[20],
+    playerCard[24]
+  ];
+
+  return corners.every(isMarked);
+
+}
+
+
+// ===============================
+// SHOW WINNER
+// ===============================
+
+function showWinner(pattern, prize) {
+
+  const box =
+    document.getElementById('winnerBox');
+
+  if (!box) return;
+
+  box.classList.remove('hidden');
+
+  document.getElementById('winnerPattern').textContent =
+    `Winning Pattern: ${pattern}`;
+
+  document.getElementById('winnerPrize').textContent =
+    `Prize: ${prize.toFixed(2)} ETB`;
+
+}
+
+
+// ===============================
+// SAVE WINNER TO SUPABASE
+// ===============================
+
+async function saveWinner(pattern) {
+
+  const gameId =
+    localStorage.getItem('gameId');
+
+  const roomId =
+    localStorage.getItem('roomId');
+
+  const userId =
+    localStorage.getItem('userId');
+
+  if (!gameId || !roomId || !userId) return;
+
+  // Check if winner already exists
+  const { data: game } =
+    await supabase
+
+      .from('games')
+
+      .select('winner_user_id')
+
+      .eq('id', gameId)
+
+      .single();
+
+  if (game?.winner_user_id) {
+
+    alert('Winner already declared');
+
+    return;
+
+  }
+
+  // Get room for prize calculation
+  const { data: room } =
+    await supabase
+
+      .from('rooms')
+
+      .select('entry_fee')
+
+      .eq('id', roomId)
+
+      .single();
+
+  const { data: players } =
+    await supabase
+
+      .from('game_players')
+
+      .select('id')
+
+      .eq('game_id', gameId);
+
+  const totalPlayers =
+    players?.length || 0;
+
+  const prize =
+    totalPlayers *
+    room.entry_fee *
+    0.8;
+
+  // Save winner
+  await supabase
+
+    .from('games')
+
+    .update({
+
+      status: 'finished',
+
+      winner_user_id: userId,
+
+      winner_pattern: pattern,
+
+      prize_amount: prize
+
+    })
+
+    .eq('id', gameId);
+
+  showWinner(pattern, prize);
+
+}
+
+
+// ===============================
+// MAIN CHECK
+// ===============================
+
+async function checkWinner() {
+
+  let pattern = null;
+
+  if (checkHorizontal()) {
+
+    pattern = 'Horizontal';
+
+  } else if (checkVertical()) {
+
+    pattern = 'Vertical';
+
+  } else if (checkDiagonal()) {
+
+    pattern = 'Diagonal';
+
+  } else if (checkReverseDiagonal()) {
+
+    pattern = 'Reverse Diagonal';
+
+  } else if (checkFourCorners()) {
+
+    pattern = 'Four Corners';
+
+  }
+
+  if (!pattern) {
+
+    alert('No Bingo yet!');
+
+    return;
+
+  }
+
+  await saveWinner(pattern);
+
 }

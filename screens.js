@@ -1,137 +1,73 @@
 // ===============================
-// VAMIOS BINGO
-// SCREENS.JS
+// VAMIOS BINGO SCREEN MANAGER
 // ===============================
 
-// Screens currently used by the Bingo website.
-// Deposit and withdrawal are handled by Telegram,
-// so those screens are intentionally removed.
-
-const SCREENS = [
-    "lobbyScreen",
-    "boardScreen",
-    "waitingScreen",
-    "gameScreen",
-    "walletScreen",
-    "withdrawScreen",
-    "phoneScreen"
+const screens = [
+  'lobbyScreen',
+  'boardScreen',
+  'waitingScreen',
+  'gameScreen',
+  'walletScreen',
+  'depositScreen',
+  'withdrawScreen'
 ];
 
+function showScreen(id) {
 
-// ==========================================
-// SHOW SCREEN
-// ==========================================
+  screens.forEach(screenId => {
 
-function showScreen(screenId) {
+    const el = document.getElementById(screenId);
 
-    SCREENS.forEach(
-        (id) => {
+    if (!el) return;
 
-            const screen =
-                document.getElementById(id);
+    if (screenId === id) {
+      el.classList.remove('hidden');
+    } else {
+      el.classList.add('hidden');
+    }
 
-            if (screen) {
+  });
 
-                screen.classList.toggle(
-                    "hidden",
-                    id !== screenId
-                );
-
-            }
-        }
-    );
 }
 
 
-// ==========================================
-// GO TO LOBBY
-// ==========================================
+// ===============================
+// NAVIGATION
+// ===============================
 
 function goToLobby() {
-
-    showScreen(
-        "lobbyScreen"
-    );
+  showScreen('lobbyScreen');
 }
-
-
-// ==========================================
-// GO TO BOARDS
-// ==========================================
 
 function goToBoards() {
-
-    showScreen(
-        "boardScreen"
-    );
+  showScreen('boardScreen');
 }
-
-
-// ==========================================
-// GO TO WAITING
-// ==========================================
 
 function goToWaiting() {
-
-    showScreen(
-        "waitingScreen"
-    );
+  showScreen('waitingScreen');
 }
-
-
-// ==========================================
-// GO TO GAME
-// ==========================================
 
 function goToGame() {
-
-    showScreen(
-        "gameScreen"
-    );
+  showScreen('gameScreen');
 }
-
-
-// ==========================================
-// GO TO WALLET
-// ==========================================
 
 function goToWallet() {
-
-    showScreen(
-        "walletScreen"
-    );
+  showScreen('walletScreen');
 }
 
+function goToDeposit() {
+  showScreen('depositScreen');
+}
 
-// ==========================================
-// BACK TO LOBBY
-// ==========================================
-
-document.addEventListener(
-    "DOMContentLoaded",
-    () => {
-
-        const backBtn =
-            document.getElementById(
-                "backToLobbyBtn"
-            );
-
-        if (backBtn) {
-
-            backBtn.onclick =
-                () => {
-
-                    goToLobby();
-
-                };
-        }
-
-        // Start on lobby
-        showScreen(
-            "lobbyScreen"
-        );
-    }
-);
 function goToWithdraw() {
-    showScreen("withdrawScreen");
+  showScreen('withdrawScreen');
 }
+
+
+// ===============================
+// START ON LOBBY
+// ===============================
+
+document.addEventListener('DOMContentLoaded', () => {
+  showScreen('lobbyScreen');
+});

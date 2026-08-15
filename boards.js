@@ -1,221 +1,57 @@
 // ===============================
-// VAMIOS BINGO
-// BOARDS.JS
+// VAMIOS BINGO BOARDS
+// Select board and join room
 // ===============================
 
 let selectedBoard = null;
-let startGameBusy = false;
-let boardSelectionTimer = null;
-let boardTimeLeft = 30;
+let selectedFee = null;
 
 
 // ===============================
-// LOAD BOARDS
+// ROOM SELECTION
 // ===============================
 
-async function loadBoards() {
+function selectRoomByFee(fee) {
 
-    const container =
-        document.getElementById("boardContainer");
+  selectedFee = fee;
 
-    if (!container) {
-        console.log("Board container not found");
-        return;
-    }
+  goToBoards();
 
-    container.innerHTML = "Loading boards...";
+  generateBoards();
 
-    try {
+}
 
-        // ===============================
-        // LOAD ALL BOARDS
-        // ===============================
-
-        const {
-            data: boards,
-            error: boardsError
-        } =
-            await supabaseClient
-                .from("boards")
-                .select("*")
-                .order("board_number");
-
-        if (boardsError) {
-            throw boardsError;
-        }
-
-        if (!boards || boards.length === 0) {
-            container.innerHTML =
-                "No boards available";
-            return;
-        }
+window.selectRoomByFee = selectRoomByFee;
 
 
-        // ===============================
-        // FIND CURRENT GAME
-        // ===============================
+// ===============================
+// GENERATE BOARD NUMBERS
+// ===============================
 
-        const roomId =
-            Number(
-                localStorage.getItem("room_id")
-            );
+function generateBoards() {
 
-        let currentGame = null;
+  const container =
+    document.getElementById('boardContainer');
 
-        if (roomId) {
+  if (!container) return;
 
-            const {
-                data: game,
-                error: gameError
-            } =
-                await supabaseClient
-                    .from("games")
-                    .select("*")
-                    .eq("room_id", roomId)
-                    .eq("status", "waiting")
-                    .order("id", {
-                        ascending: false
-                    })
-                    .limit(1)
-                    .maybeSingle();
+  container.innerHTML = '';
 
-            if (gameError) {
-                console.error(
-                    "Load current game error:",
-                    gameError
-                );
-            }
+  for (let i = 1; i <= 100; i++) {
 
-            currentGame = game;
-        }
+    const btn =
+      document.createElement('button');
 
+    btn.className = 'board-btn';
 
-        // ===============================
-        // FIND TAKEN BOARDS
-        // ===============================
+    btn.textContent = i;
 
-        let takenBoardIds = [];
+    btn.onclick = () => selectBoard(i);
 
-        if (currentGame) {
+    container.appendChild(btn);
 
-            const {
-                data: players,
-                error: playersError
-            } =
-                await supabaseClient
-                    .from("game_players")
-                    .select("board_id")
-                    .eq(
-                        "game_id",
-                        currentGame.id
-                    );
+  }
 
-            if (playersError) {
-                console.error(
-                    "Load taken boards error:",
-                    playersError
-                );
-            } else {
-
-                takenBoardIds =
-                    (players || [])
-                        .map(player =>
-                            Number(player.board_id)
-                        );
-            }
-        }
-
-
-        // ===============================
-        // CREATE GRID
-        // ===============================
-
-        container.innerHTML = "";
-
-        boards.forEach(board => {
-
-            const box =
-                document.createElement("div");
-
-            box.className = "board";
-
-            box.innerText =
-                board.board_number;
-
-
-            const isTaken =
-                takenBoardIds.includes(
-                    Number(board.id)
-                );
-
-
-            // ===============================
-            // TAKEN
-            // ===============================
-
-            if (isTaken) {
-
-                box.classList.add("taken");
-
-                box.innerText =
-                    board.board_number;
-
-                box.title =
-                    "Already taken";
-
-            } else {
-
-                // ===============================
-                // AVAILABLE
-                // ===============================
-
-                box.addEventListener(
-                    "click",
-                    function () {
-
-                        selectBoard(
-                            board,
-                            box
-                        );
-
-                    }
-                );
-            }
-
-
-            container.appendChild(box);
-
-        });
-
-
-        // ===============================
-        // START TIMER
-        // ===============================
-
-        startBoardSelectionTimer();
-
-
-        console.log(
-            "Boards loaded:",
-            boards.length
-        );
-
-        console.log(
-            "Taken boards:",
-            takenBoardIds
-        );
-
-
-    } catch (error) {
-
-        console.error(
-            "Load boards error:",
-            error
-        );
-
-        container.innerHTML =
-            "Cannot load boards";
-    }
 }
 
 
@@ -223,934 +59,320 @@ async function loadBoards() {
 // SELECT BOARD
 // ===============================
 
-function selectBoard(board, box) {
+function selectBoard(number) {
 
-    // Don't allow taken boards
-    if (
-        box.classList.contains("taken")
-    ) {
-        return;
+  selectedBoard = number;
+
+  document
+    .querySelectorAll('.board-btn')
+    .forEach(btn => btn.classList.remove('selected'));
+
+  const buttons =
+    document.querySelectorAll('.board-btn');
+
+  buttons[number - 1]?.classList.add('selected');
+
+  const startBtn =
+    document.getElementById('startBtn');
+
+  if (startBtn) {
+    startBtn.disabled = false;
+  }
+
+}
+
+
+// ===============================
+// CREATE SIMPLE BINGO CARD
+// ===============================
+
+function createCardPreview() {
+
+  const preview =
+    document.getElementById('cardPreview');
+
+  if (!preview) return;
+
+  preview.innerHTML = '';
+
+  const card =
+    document.createElement('div');
+
+  card.className = 'bingo-preview-grid';
+
+  for (let i = 1; i <= 25; i++) {
+
+    const cell =
+      document.createElement('div');
+
+    cell.className = 'preview-cell';
+
+    if (i === 13) {
+
+      cell.textContent = 'FREE';
+
+    } else {
+
+      cell.textContent =
+        Math.floor(Math.random() * 75) + 1;
+
     }
 
+    card.appendChild(cell);
 
-    // Remove previous selection
-    document
-        .querySelectorAll(".board")
-        .forEach(item => {
+  }
 
-            item.classList.remove(
-                "selected"
-            );
+  preview.appendChild(card);
 
-        });
+}
 
 
-    // Select this board
-    box.classList.add("selected");
+// ===============================
+// START GAME BUTTON
+// ===============================
 
-    selectedBoard = board;
+document.addEventListener('DOMContentLoaded', () => {
+
+  createCardPreview();
+
+  const startBtn =
+    document.getElementById('startBtn');
+
+  if (startBtn) {
+
+    startBtn.onclick = joinRoom;
+
+  }
+
+});
 
 
-    // Save selected board
+// ===============================
+// JOIN OR CREATE ROOM
+// ===============================
+
+async function joinRoom() {
+
+  if (!selectedBoard || !selectedFee) {
+
+    alert('Select a board first');
+
+    return;
+
+  }
+
+
+  // Get current room by entry fee
+  let { data: room } =
+    await supabase
+
+      .from('rooms')
+
+      .select('*')
+
+      .eq('entry_fee', selectedFee)
+
+      .single();
+
+
+  // Create room if missing
+  if (!room) {
+
+    const next =
+      new Date(
+        Date.now() + 60000
+      ).toISOString();
+
+
+    const { data: created } =
+      await supabase
+
+        .from('rooms')
+
+        .insert({
+
+          name: `${selectedFee} ETB Room`,
+
+          entry_fee: selectedFee,
+
+          max_players: 100,
+
+          status: 'waiting',
+
+          next_game_time: next
+
+        })
+
+        .select()
+
+        .single();
+
+
+    room = created;
+
+  }
+
+
+  // Get active game
+  let game = null;
+
+  if (room.current_game_id) {
+
+    const { data } =
+      await supabase
+
+        .from('games')
+
+        .select('*')
+
+        .eq('id', room.current_game_id)
+
+        .single();
+
+
+    game = data;
+
+  }
+
+
+  // Create game if missing
+  if (!game) {
+
+    const { data: newGame } =
+      await supabase
+
+        .from('games')
+
+        .insert({
+
+          room_id: room.id,
+
+          status: 'waiting',
+
+          called_numbers: []
+
+        })
+
+        .select()
+
+        .single();
+
+
+    game = newGame;
+
+
+    await supabase
+
+      .from('rooms')
+
+      .update({
+        current_game_id: game.id
+      })
+
+      .eq('id', room.id);
+
+  }
+
+
+  // Check current players
+  const { data: players } =
+    await supabase
+
+      .from('game_players')
+
+      .select('id')
+
+      .eq('game_id', game.id);
+
+
+  const isHost =
+    (players?.length || 0) === 0;
+
+
+  // Temporary user id
+  let userId =
+    localStorage.getItem('userId');
+
+  if (!userId) {
+
+    userId =
+      'user_' +
+      Math.random()
+        .toString(36)
+        .substring(2, 10);
+
     localStorage.setItem(
-        "selected_board_id",
-        board.id
+      'userId',
+      userId
     );
 
-
-    // Show selected number
-    updateSelectedBoardDisplay(
-        board.board_number
-    );
+  }
 
 
-    // Enable start button
-    const startButton =
-        document.getElementById(
-            "startBtn"
-        );
+  // Join game
+  await supabase
 
+    .from('game_players')
 
-    if (startButton) {
+    .insert({
 
-        startButton.disabled = false;
+      game_id: game.id,
 
-        startButton.style.pointerEvents =
-            "auto";
+      user_id: userId,
 
-        startButton.style.opacity =
-            "1";
+      board_id: selectedBoard,
 
-        startButton.innerText =
-            "START GAME";
-    }
-
-
-    // Show card preview
-    showCardPreview(board);
-
-
-    console.log(
-        "Selected board:",
-        board.board_number
-    );
-}
-
-
-// ===============================
-// SELECTED BOARD DISPLAY
-// ===============================
-
-function updateSelectedBoardDisplay(
-    boardNumber
-) {
-
-    const elements = [
-
-        document.getElementById(
-            "selectedBoard"
-        ),
-
-        document.getElementById(
-            "selectedNumber"
-        ),
-
-        document.getElementById(
-            "selectedBoardNumber"
-        )
-
-    ];
-
-
-    elements.forEach(element => {
-
-        if (element) {
-
-            element.innerText =
-                "#" + boardNumber;
-        }
+      ready: true
 
     });
-}
 
 
-// ===============================
-// CARD PREVIEW
-// ===============================
+  // Save local state
+  localStorage.setItem(
+    'roomId',
+    room.id
+  );
 
-function showCardPreview(board) {
+  localStorage.setItem(
+    'gameId',
+    game.id
+  );
 
-    const preview =
-        document.getElementById(
-            "cardPreview"
-        );
+  localStorage.setItem(
+    'boardId',
+    selectedBoard
+  );
 
-    if (!preview) {
-        return;
-    }
+  localStorage.setItem(
+    'entryFee',
+    selectedFee
+  );
 
+  localStorage.setItem(
+    'isHost',
+    isHost ? 'true' : 'false'
+  );
 
-    const card =
-        board.card_data;
 
+  console.log(
+    'Joined room',
+    room.id,
+    'Game',
+    game.id,
+    'Host:',
+    isHost
+  );
 
-    if (!card) {
 
-        preview.innerHTML = "";
+  goToWaiting();
 
-        return;
-    }
+  if (typeof startWaitingRoom === 'function') {
 
-
-    const letters = [
-        "B",
-        "I",
-        "N",
-        "G",
-        "O"
-    ];
-
-
-    let html = `
-        <div class="preview-card">
-    `;
-
-
-    for (
-        let row = 0;
-        row < 5;
-        row++
-    ) {
-
-        for (
-            let col = 0;
-            col < 5;
-            col++
-        ) {
-
-            let value =
-                card[
-                    letters[col]
-                ][row];
-
-
-            if (
-                row === 2 &&
-                col === 2
-            ) {
-
-                value =
-                    "FREE";
-            }
-
-
-            html += `
-                <div class="preview-cell ${
-                    value === "FREE"
-                        ? "free"
-                        : ""
-                }">
-                    ${value}
-                </div>
-            `;
-        }
-    }
-
-
-    html += `
-        </div>
-    `;
-
-
-    preview.innerHTML =
-        html;
-}
-
-
-// ===============================
-// BOARD SELECTION TIMER
-// ===============================
-
-function startBoardSelectionTimer() {
-
-    // Clear old timer
-    if (boardSelectionTimer) {
-
-        clearInterval(
-            boardSelectionTimer
-        );
-    }
-
-
-    boardTimeLeft = 30;
-
-
-    updateBoardTimer();
-
-
-    boardSelectionTimer =
-        setInterval(
-            function () {
-
-                boardTimeLeft--;
-
-
-                updateBoardTimer();
-
-
-                if (
-                    boardTimeLeft <= 0
-                ) {
-
-                    clearInterval(
-                        boardSelectionTimer
-                    );
-
-                    lockBoardSelection();
-                }
-
-            },
-            1000
-        );
-}
-
-
-// ===============================
-// UPDATE TIMER
-// ===============================
-
-function updateBoardTimer() {
-
-    const timerElements = [
-
-        document.getElementById(
-            "boardTimer"
-        ),
-
-        document.getElementById(
-            "selectionTimer"
-        ),
-
-        document.getElementById(
-            "timeLeft"
-        )
-
-    ];
-
-
-    timerElements.forEach(element => {
-
-        if (element) {
-
-            element.innerText =
-                "00:" +
-                String(
-                    boardTimeLeft
-                ).padStart(2, "0");
-
-        }
-
-    });
-}
-
-
-// ===============================
-// LOCK BOARD SELECTION
-// ===============================
-
-function lockBoardSelection() {
-
-    console.log(
-        "Board selection locked"
+    startWaitingRoom(
+      room.id,
+      game.id
     );
 
+  }
 
-    document
-        .querySelectorAll(".board")
-        .forEach(box => {
-
-            box.style.pointerEvents =
-                "none";
-
-        });
-
-
-    const startButton =
-        document.getElementById(
-            "startBtn"
-        );
-
-
-    // If player selected a board,
-    // keep START GAME available.
-    if (
-        startButton &&
-        !selectedBoard
-    ) {
-
-        startButton.disabled =
-            true;
-
-        startButton.style.opacity =
-            "0.5";
-    }
-}
-
-
-// ===============================
-// ATTACH START BUTTON
-// ===============================
-
-function setupStartButton() {
-
-    const startButton =
-        document.getElementById(
-            "startBtn"
-        );
-
-
-    if (!startButton) {
-
-        console.log(
-            "START BUTTON NOT FOUND"
-        );
-
-        return;
-    }
-
-
-    console.log(
-        "START BUTTON FOUND"
-    );
-
-
-    // Prevent duplicate handlers
-    startButton.onclick = null;
-
-
-    startButton.onclick =
-        async function(event) {
-
-            event.preventDefault();
-
-
-            console.log(
-                "START BUTTON CLICKED"
-            );
-
-
-            await startSelectedGame();
-
-        };
-
-
-    // Initial state
-    if (!selectedBoard) {
-
-        startButton.disabled =
-            true;
-
-        startButton.style.opacity =
-            "0.5";
-
-    }
-}
-
-
-// ===============================
-// START BUTTON SETUP
-// ===============================
-
-setupStartButton();
-
-
-document.addEventListener(
-    "DOMContentLoaded",
-    setupStartButton
-);
-
-
-// ===============================
-// START GAME
-// ===============================
-
-async function startSelectedGame() {
-
-    console.log(
-        "START GAME FUNCTION RUNNING"
-    );
-
-
-    if (startGameBusy) {
-
-        console.log(
-            "Start game already running"
-        );
-
-        return;
-    }
-
-
-    // ===============================
-    // CHECK BOARD
-    // ===============================
-
-    if (!selectedBoard) {
-
-        alert(
-            "Please select your number first."
-        );
-
-        return;
-    }
-
-
-    startGameBusy = true;
-
-
-    const startButton =
-        document.getElementById(
-            "startBtn"
-        );
-
-
-    if (startButton) {
-
-        startButton.disabled =
-            true;
-
-        startButton.innerText =
-            "JOINING...";
-
-    }
-
-
-    try {
-
-        // ===============================
-        // ROOM
-        // ===============================
-
-        const roomId =
-            Number(
-                localStorage.getItem(
-                    "room_id"
-                )
-            );
-
-
-        if (!roomId) {
-
-            throw new Error(
-                "No room selected."
-            );
-        }
-
-
-        // ===============================
-        // USER
-        // ===============================
-
-        const user =
-            await getCurrentUser();
-
-
-        if (!user) {
-
-            throw new Error(
-                "User not found."
-            );
-        }
-
-
-        console.log(
-            "User:",
-            user.id
-        );
-
-
-        // ===============================
-        // ROOM
-        // ===============================
-
-        const {
-            data: room,
-            error: roomError
-        } =
-            await supabaseClient
-                .from("rooms")
-                .select("*")
-                .eq(
-                    "id",
-                    roomId
-                )
-                .single();
-
-
-        if (roomError) {
-            throw roomError;
-        }
-
-
-        const entryFee =
-            Number(
-                room.entry_fee
-            );
-
-
-        // ===============================
-        // BALANCE
-        // ===============================
-
-        const balance =
-            await getBalance(
-                user.id
-            );
-
-
-        console.log(
-            "Balance:",
-            balance
-        );
-
-
-        console.log(
-            "Entry fee:",
-            entryFee
-        );
-
-
-        if (
-            Number(balance) <
-            entryFee
-        ) {
-
-            alert(
-                "Insufficient balance.\n\n" +
-                "Entry fee: " +
-                entryFee +
-                " ETB"
-            );
-
-            return;
-        }
-
-
-        // ===============================
-        // FIND WAITING GAME
-        // ===============================
-
-        let {
-            data: game,
-            error: gameError
-        } =
-            await supabaseClient
-                .from("games")
-                .select("*")
-                .eq(
-                    "room_id",
-                    roomId
-                )
-                .eq(
-                    "status",
-                    "waiting"
-                )
-                .order(
-                    "id",
-                    {
-                        ascending: false
-                    }
-                )
-                .limit(1)
-                .maybeSingle();
-
-
-        if (gameError) {
-            throw gameError;
-        }
-
-
-        // ===============================
-        // CREATE GAME
-        // ===============================
-
-        if (!game) {
-
-            console.log(
-                "Creating new game..."
-            );
-
-
-            const {
-                data: newGame,
-                error: newGameError
-            } =
-                await supabaseClient
-                    .from("games")
-                    .insert([{
-
-                        game_code:
-                            "VAM-" +
-                            Date.now(),
-
-                        room_id:
-                            roomId,
-
-                        status:
-                            "waiting",
-
-                        player_count:
-                            0,
-
-                        prize_pool:
-                            0,
-
-                        commission:
-                            0,
-
-                        called_numbers:
-                            []
-
-                    }])
-                    .select()
-                    .single();
-
-
-            if (newGameError) {
-                throw newGameError;
-            }
-
-
-            game =
-                newGame;
-        }
-
-
-        console.log(
-            "Game:",
-            game.id
-        );
-
-
-        // ===============================
-        // CHECK BOARD
-        // ===============================
-
-        const {
-            data: taken,
-            error: takenError
-        } =
-            await supabaseClient
-                .from("game_players")
-                .select("id")
-                .eq(
-                    "game_id",
-                    game.id
-                )
-                .eq(
-                    "board_id",
-                    selectedBoard.id
-                );
-
-
-        if (takenError) {
-            throw takenError;
-        }
-
-
-        if (
-            taken &&
-            taken.length > 0
-        ) {
-
-            alert(
-                "This number is already taken."
-            );
-
-            // Reload board grid
-            await loadBoards();
-
-            return;
-        }
-
-
-        // ===============================
-        // PAY
-        // ===============================
-
-        console.log(
-            "Deducting entry fee..."
-        );
-
-
-        const paid =
-            await deductBalance(
-                user.id,
-                entryFee
-            );
-
-
-        if (!paid) {
-
-            return;
-        }
-
-
-        // ===============================
-        // JOIN
-        // ===============================
-
-        console.log(
-            "Joining game..."
-        );
-
-
-        const {
-            error: joinError
-        } =
-            await supabaseClient
-                .from("game_players")
-                .insert([{
-
-                    game_id:
-                        game.id,
-
-                    user_id:
-                        user.id,
-
-                    board_id:
-                        selectedBoard.id,
-
-                    ready:
-                        true
-
-                }]);
-
-
-        if (joinError) {
-
-            console.error(
-                "Join error:",
-                joinError
-            );
-
-
-            // Refund
-            await supabaseClient
-                .from("wallets")
-                .update({
-
-                    balance:
-                        Number(balance)
-
-                })
-                .eq(
-                    "user_id",
-                    user.id
-                );
-
-
-            throw joinError;
-        }
-
-
-        // ===============================
-        // UPDATE GAME
-        // ===============================
-
-        const newCount =
-            Number(
-                game.player_count || 0
-            ) + 1;
-
-
-        const totalPool =
-            newCount *
-            entryFee;
-
-
-        const commission =
-            totalPool *
-            0.20;
-
-
-        const prizePool =
-            totalPool -
-            commission;
-
-
-        const {
-            error: updateError
-        } =
-            await supabaseClient
-                .from("games")
-                .update({
-
-                    player_count:
-                        newCount,
-
-                    prize_pool:
-                        prizePool,
-
-                    commission:
-                        commission
-
-                })
-                .eq(
-                    "id",
-                    game.id
-                );
-
-
-        if (updateError) {
-            throw updateError;
-        }
-
-
-        // ===============================
-        // SAVE
-        // ===============================
-
-        localStorage.setItem(
-            "game_id",
-            game.id
-        );
-
-
-        localStorage.setItem(
-            "selected_board_id",
-            selectedBoard.id
-        );
-
-
-        console.log(
-            "GAME JOINED SUCCESSFULLY"
-        );
-
-
-        // Stop board timer
-        if (boardSelectionTimer) {
-
-            clearInterval(
-                boardSelectionTimer
-            );
-
-            boardSelectionTimer =
-                null;
-        }
-
-
-        // ===============================
-        // OPEN WAITING
-        // ===============================
-
-        showScreen(
-            "waitingScreen"
-        );
-
-
-        if (
-            typeof loadWaiting ===
-            "function"
-        ) {
-
-            await loadWaiting();
-        }
-
-
-    } catch (error) {
-
-        console.error(
-            "START GAME ERROR:",
-            error
-        );
-
-
-        alert(
-            error.message ||
-            "Could not start game."
-        );
-
-
-    } finally {
-
-        startGameBusy =
-            false;
-
-
-        if (startButton) {
-
-            startButton.disabled =
-                false;
-
-            startButton.innerText =
-                "START GAME";
-
-            startButton.style.pointerEvents =
-                "auto";
-
-            startButton.style.opacity =
-                "1";
-        }
-    }
 }
