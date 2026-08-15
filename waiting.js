@@ -1,6 +1,6 @@
 // ===============================
 // VAMIOS BINGO WAITING ROOM
-// Shared countdown + realtime players
+// Realtime players + shared countdown
 // ===============================
 
 let waitingChannel = null;
@@ -13,104 +13,255 @@ let countdownTimer = null;
 
 async function startWaitingRoom(roomId, gameId) {
 
-  // Clean previous channel
+  console.log("WAITING ROOM START:", roomId, gameId);
+
+  // Stop previous countdown
+  if (countdownTimer) {
+    clearInterval(countdownTimer);
+    countdownTimer = null;
+  }
+
+  // Remove previous realtime channel
   if (waitingChannel) {
     await supabase.removeChannel(waitingChannel);
     waitingChannel = null;
   }
 
-  // Load room information
-  const { data: room } =
+
+  // ===============================
+  // LOAD ROOM
+  // ===============================
+
+  const { data: room, error } =
     await supabase
-      .from('rooms')
-      .select('*')
-      .eq('id', roomId)
+      .from("rooms")
+      .select("*")
+      .eq("id", roomId)
       .single();
 
-  if (!room) return;
+  if (error) {
+    console.error("WAITING ROOM ERROR:", error);
+    return;
+  }
 
-  // Fill waiting screen
-  document.getElementById('waitingRoomName').textContent =
-    room.name || `${room.entry_fee} ETB Room`;
+  if (!room) {
+    console.error("ROOM NOT FOUND");
+    return;
+  }
 
-  document.getElementById('waitingPrize').textContent =
-    ((room.entry_fee * 100) * 0.8).toFixed(2);
 
-  // Load current players
+  console.log("ROOM:", room);
+
+
+  // ===============================
+  // SHOW ROOM INFORMATION
+  // ===============================
+
+  const roomName =
+    document.getElementById("waitingRoomName");
+
+  const prize =
+    document.getElementById("waitingPrize");
+
+  if (roomName) {
+    roomName.textContent =
+      room.name || `${room.entry_fee} ETB Room`;
+  }
+
+  if (prize) {
+
+    // Prize = players × entry fee × 80%
+    // Maximum 100 players
+
+    const maxPlayers =
+      room.max_players || 100;
+
+    const prizePool =
+      room.entry_fee *
+      maxPlayers *
+      0.80;
+
+    prize.textContent =
+      prizePool.toFixed(2);
+  }
+
+
+  // ===============================
+  // LOAD PLAYERS
+  // ===============================
+
   await loadWaitingPlayers(gameId);
 
-  // Start shared countdown
-  startSharedCountdown(room.next_game_time);
 
-  // Realtime updates
-  waitingChannel = supabase
-    .channel(`waiting-${gameId}`)
-    .on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'game_players',
-        filter: `game_id=eq.${gameId}`
-      },
-      async () => {
-        await loadWaitingPlayers(gameId);
-      }
-    )
-    .subscribe();
+  // ===============================
+  // START SHARED COUNTDOWN
+  // ===============================
+
+  if (room.next_game_time) {
+
+    startSharedCountdown(
+      room.next_game_time,
+      roomId,
+      gameId
+    );
+
+  } else {
+
+    console.error(
+      "ROOM HAS NO next_game_time"
+    );
+
+  }
+
+
+  // ===============================
+  // REALTIME PLAYERS
+  // ===============================
+
+  waitingChannel =
+    supabase
+      .channel(`waiting-room-${gameId}`)
+
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "game_players",
+          filter: `game_id=eq.${gameId}`
+        },
+        async (payload) => {
+
+          console.log(
+            "PLAYER JOINED:",
+            payload.new
+          );
+
+          await loadWaitingPlayers(gameId);
+
+        }
+      )
+
+      .on(
+        "postgres_changes",
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "game_players",
+          filter: `game_id=eq.${gameId}`
+        },
+        async () => {
+
+          console.log(
+            "PLAYER LEFT"
+          );
+
+          await loadWaitingPlayers(gameId);
+
+        }
+      )
+
+      .subscribe((status) => {
+
+        console.log(
+          "WAITING REALTIME:",
+          status
+        );
+
+      });
 
 }
 
 
 // ===============================
-// LOAD PLAYERS
+// LOAD WAITING PLAYERS
 // ===============================
 
 async function loadWaitingPlayers(gameId) {
 
-  const { data: players } =
+  const {
+    data: players,
+    error
+  } =
     await supabase
-      .from('game_players')
-      .select('user_id')
-      .eq('game_id', gameId);
+      .from("game_players")
+      .select("user_id")
+      .eq("game_id", gameId);
+
+  if (error) {
+
+    console.error(
+      "PLAYER LOAD ERROR:",
+      error
+    );
+
+    return;
+  }
+
 
   const list =
-    document.getElementById('waitingPlayerList');
+    document.getElementById(
+      "waitingPlayerList"
+    );
 
   const count =
-    document.getElementById('waitingPlayers');
+    document.getElementById(
+      "waitingPlayers"
+    );
 
-  if (!list || !count) return;
+  if (!list || !count) {
 
-  list.innerHTML = '';
+    console.error(
+      "WAITING PLAYER ELEMENTS NOT FOUND"
+    );
+
+    return;
+  }
+
+
+  list.innerHTML = "";
+
 
   const total =
     players?.length || 0;
 
-  count.textContent = total;
+  count.textContent =
+    total;
+
 
   if (total === 0) {
 
     list.innerHTML =
-      '<div class="player-item"><span class="player-status">●</span> Waiting for players...</div>';
+      `
+      <div class="player-item">
+        <span class="player-status">●</span>
+        Waiting for players...
+      </div>
+      `;
 
     return;
-
   }
 
-  players.forEach((player, index) => {
 
-    const row =
-      document.createElement('div');
+  players.forEach(
+    (player, index) => {
 
-    row.className = 'player-item';
+      const row =
+        document.createElement("div");
 
-    row.innerHTML =
-      `<span class="player-status">●</span> Player ${index + 1}`;
+      row.className =
+        "player-item";
 
-    list.appendChild(row);
+      row.innerHTML =
+        `
+        <span class="player-status">●</span>
+        Player ${index + 1}
+        `;
 
-  });
+      list.appendChild(row);
+
+    }
+  );
 
 }
 
@@ -119,59 +270,190 @@ async function loadWaitingPlayers(gameId) {
 // SHARED COUNTDOWN
 // ===============================
 
-function startSharedCountdown(nextGameTime) {
+function startSharedCountdown(
+  nextGameTime,
+  roomId,
+  gameId
+) {
 
   if (countdownTimer) {
-    clearInterval(countdownTimer);
+
+    clearInterval(
+      countdownTimer
+    );
+
+    countdownTimer = null;
   }
 
-  const countdown =
-    document.getElementById('countdown');
 
-  function update() {
+  const countdown =
+    document.getElementById(
+      "countdown"
+    );
+
+
+  function updateCountdown() {
 
     const end =
-      new Date(nextGameTime).getTime();
+      new Date(
+        nextGameTime
+      ).getTime();
 
     const now =
       Date.now();
 
-    let seconds =
+    const difference =
+      end - now;
+
+
+    const seconds =
       Math.max(
         0,
-        Math.floor((end - now) / 1000)
+        Math.ceil(
+          difference / 1000
+        )
       );
 
+
     if (countdown) {
-      countdown.textContent = seconds;
+
+      countdown.textContent =
+        seconds;
+
     }
 
-    if (seconds <= 0) {
 
-      clearInterval(countdownTimer);
+    console.log(
+      "WAITING COUNTDOWN:",
+      seconds
+    );
 
-      // Hide waiting screen
-      document
-        .getElementById('waitingScreen')
-        ?.classList.add('hidden');
 
-      // Show game screen
-      document
-        .getElementById('gameScreen')
-        ?.classList.remove('hidden');
+    // ===============================
+    // COUNTDOWN FINISHED
+    // ===============================
 
-      // Start game
-      if (typeof initializeGame === 'function') {
-        initializeGame();
-      }
+    if (difference <= 0) {
+
+      clearInterval(
+        countdownTimer
+      );
+
+      countdownTimer =
+        null;
+
+
+      enterGame(
+        roomId,
+        gameId
+      );
 
     }
 
   }
 
-  update();
+
+  updateCountdown();
+
 
   countdownTimer =
-    setInterval(update, 1000);
+    setInterval(
+      updateCountdown,
+      1000
+    );
+
+}
+
+
+// ===============================
+// ENTER GAME
+// ===============================
+
+async function enterGame(
+  roomId,
+  gameId
+) {
+
+  console.log(
+    "ENTERING GAME:",
+    roomId,
+    gameId
+  );
+
+
+  // Prevent duplicate execution
+
+  if (
+    window.vamiosGameStarted
+  ) {
+    return;
+  }
+
+  window.vamiosGameStarted =
+    true;
+
+
+  // ===============================
+  // STOP REALTIME
+  // ===============================
+
+  if (waitingChannel) {
+
+    await supabase
+      .removeChannel(
+        waitingChannel
+      );
+
+    waitingChannel =
+      null;
+  }
+
+
+  // ===============================
+  // HIDE WAITING
+  // ===============================
+
+  document
+    .getElementById(
+      "waitingScreen"
+    )
+    ?.classList.add(
+      "hidden"
+    );
+
+
+  // ===============================
+  // SHOW GAME
+  // ===============================
+
+  document
+    .getElementById(
+      "gameScreen"
+    )
+    ?.classList.remove(
+      "hidden"
+    );
+
+
+  // ===============================
+  // INITIALIZE GAME
+  // ===============================
+
+  if (
+    typeof initializeGame ===
+    "function"
+  ) {
+
+    await initializeGame(
+      gameId
+    );
+
+  } else {
+
+    console.error(
+      "initializeGame() NOT FOUND"
+    );
+
+  }
 
 }

@@ -3,71 +3,67 @@
 // ===============================
 
 const screens = [
-  'lobbyScreen',
-  'boardScreen',
-  'waitingScreen',
-  'gameScreen',
-  'walletScreen',
-  'depositScreen',
-  'withdrawScreen'
+'lobbyScreen',
+'boardScreen',
+'waitingScreen',
+'gameScreen',
+'walletScreen',
+'depositScreen',
+'withdrawScreen'
 ];
 
-function showScreen(id) {
+function showScreen(screenId) {
+screens.forEach(id => {
+const el = document.getElementById(id);
+if (!el) return;
 
-  screens.forEach(screenId => {
+```
+if (id === screenId) {
+  el.classList.remove('hidden');
+} else {
+  el.classList.add('hidden');
+}
+```
 
-    const el = document.getElementById(screenId);
-
-    if (!el) return;
-
-    if (screenId === id) {
-      el.classList.remove('hidden');
-    } else {
-      el.classList.add('hidden');
-    }
-
-  });
-
+});
 }
 
-
 // ===============================
-// NAVIGATION
+// NAVIGATION FUNCTIONS
 // ===============================
 
 function goToLobby() {
-  showScreen('lobbyScreen');
+showScreen('lobbyScreen');
 }
 
 function goToBoards() {
-  showScreen('boardScreen');
+showScreen('boardScreen');
 }
 
 function goToWaiting() {
-  showScreen('waitingScreen');
+showScreen('waitingScreen');
 }
 
 function goToGame() {
-  showScreen('gameScreen');
+showScreen('gameScreen');
 }
 
 function goToWallet() {
-  showScreen('walletScreen');
+showScreen('walletScreen');
 }
 
 function goToDeposit() {
-  showScreen('depositScreen');
+showScreen('depositScreen');
 }
 
 function goToWithdraw() {
-  showScreen('withdrawScreen');
+showScreen('withdrawScreen');
 }
-
 
 // ===============================
 // START ON LOBBY
 // ===============================
 
 document.addEventListener('DOMContentLoaded', () => {
-  showScreen('lobbyScreen');
+showScreen('lobbyScreen');
 });
