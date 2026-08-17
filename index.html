@@ -1,299 +1,573 @@
 <!DOCTYPE html>
-
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>VAMIOS Bingo</title>
 
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <meta charset="UTF-8">
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0"
+    >
 
-  <link rel="stylesheet" href="style.css" />
+    <title>VAMIOS Bingo</title>
+
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
+
+    <!-- Telegram WebApp -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 </head>
+
 
 <body>
 
+
+<!-- ================================================= -->
+<!-- APP -->
+<!-- ================================================= -->
+
 <div id="app">
 
-  <!-- =========================
-       LOBBY SCREEN
-  ========================== -->
 
-  <section id="lobbyScreen" class="screen">
+    <!-- ================================================= -->
+    <!-- HEADER -->
+    <!-- ================================================= -->
 
-```
-<div class="lobby-header">
-  <h1>🎱 VAMIOS Bingo</h1>
-  <p id="connectionStatus">Connecting...</p>
-  <p id="playerInfo"></p>
+    <header class="app-header">
+
+        <div class="logo">
+            VAMIOS BINGO
+        </div>
+
+        <div id="connectionStatus"
+             class="connection-status">
+            Connecting...
+        </div>
+
+    </header>
+
+
+    <!-- ================================================= -->
+    <!-- LOBBY SCREEN -->
+    <!-- ================================================= -->
+
+    <section
+        id="lobbyScreen"
+        class="screen"
+    >
+
+        <div class="welcome-card">
+
+            <div class="welcome-title">
+                Welcome
+            </div>
+
+            <div
+                id="playerName"
+                class="player-name"
+            >
+                Player
+            </div>
+
+        </div>
+
+
+        <!-- WALLET -->
+
+        <div class="wallet-card">
+
+            <div class="wallet-label">
+                Wallet Balance
+            </div>
+
+            <div
+                id="walletBalance"
+                class="wallet-balance"
+            >
+                0.00 ETB
+            </div>
+
+        </div>
+
+
+        <!-- PLAY BINGO -->
+
+        <div class="section-title">
+            Play Bingo
+        </div>
+
+
+        <div class="fee-grid">
+
+
+            <button
+                class="fee-button"
+                data-fee="10"
+            >
+                <span>10 ETB</span>
+                <small>Game #1001</small>
+            </button>
+
+
+            <button
+                class="fee-button"
+                data-fee="15"
+            >
+                <span>15 ETB</span>
+                <small>Game #1002</small>
+            </button>
+
+
+            <button
+                class="fee-button"
+                data-fee="25"
+            >
+                <span>25 ETB</span>
+                <small>Game #1003</small>
+            </button>
+
+
+            <button
+                class="fee-button"
+                data-fee="50"
+            >
+                <span>50 ETB</span>
+                <small>Game #1004</small>
+            </button>
+
+
+        </div>
+
+
+        <!-- ROOM INFORMATION -->
+
+        <div class="room-info-card">
+
+            <div class="room-info-row">
+
+                <span>
+                    Players
+                </span>
+
+                <strong id="livePlayers">
+                    0
+                </strong>
+
+            </div>
+
+
+            <div class="room-info-row">
+
+                <span>
+                    Jackpot
+                </span>
+
+                <strong id="jackpot">
+                    0.00 ETB
+                </strong>
+
+            </div>
+
+        </div>
+
+
+    </section>
+
+
+
+    <!-- ================================================= -->
+    <!-- BOARD SELECTION -->
+    <!-- ================================================= -->
+
+    <section
+        id="boardScreen"
+        class="screen hidden"
+    >
+
+
+        <div class="screen-title">
+            Choose Your Board
+        </div>
+
+
+        <div class="selection-info">
+
+            <div>
+                Entry:
+                <strong id="selectedFee">
+                    0 ETB
+                </strong>
+            </div>
+
+            <div>
+                Board:
+                <strong id="selectedBoardNumber">
+                    None
+                </strong>
+            </div>
+
+        </div>
+
+
+        <!-- BOARD PREVIEW -->
+
+        <div
+            id="boardPreview"
+            class="board-preview hidden"
+        >
+
+            <div class="bingo-header">
+
+                <span>B</span>
+                <span>I</span>
+                <span>N</span>
+                <span>G</span>
+                <span>O</span>
+
+            </div>
+
+
+            <div
+                id="previewGrid"
+                class="bingo-grid"
+            >
+            </div>
+
+        </div>
+
+
+        <!-- BOARD NUMBERS -->
+
+        <div class="section-title">
+            Select Board Number
+        </div>
+
+
+        <div
+            id="boardNumbers"
+            class="board-numbers"
+        >
+        </div>
+
+
+        <!-- START GAME -->
+
+        <button
+            id="startGameBtn"
+            class="primary-button"
+            disabled
+        >
+            START GAME
+        </button>
+
+
+        <button
+            id="backToLobbyBtn"
+            class="secondary-button"
+        >
+            BACK
+        </button>
+
+
+    </section>
+
+
+
+    <!-- ================================================= -->
+    <!-- WAITING ROOM -->
+    <!-- ================================================= -->
+
+    <section
+        id="waitingScreen"
+        class="screen hidden"
+    >
+
+
+        <div class="screen-title">
+            Waiting Room
+        </div>
+
+
+        <div class="waiting-room-card">
+
+
+            <div
+                id="waitingRoomName"
+                class="waiting-room-name"
+            >
+                Bingo Room
+            </div>
+
+
+            <div class="countdown-label">
+                Game starts in
+            </div>
+
+
+            <div
+                id="countdown"
+                class="countdown"
+            >
+                60
+            </div>
+
+
+            <div class="waiting-stats">
+
+
+                <div>
+
+                    <span>
+                        Players
+                    </span>
+
+                    <strong>
+                        <span id="waitingPlayers">
+                            0
+                        </span>
+                        / 100
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        Prize Pool
+                    </span>
+
+                    <strong>
+                        <span id="waitingPrize">
+                            0.00
+                        </span>
+                        ETB
+                    </strong>
+
+                </div>
+
+
+            </div>
+
+
+        </div>
+
+
+        <!-- PLAYERS -->
+
+        <div class="section-title">
+            Players
+        </div>
+
+
+        <div
+            id="waitingPlayerList"
+            class="player-list"
+        >
+
+            <div class="player-item">
+
+                <span class="player-status">
+                    ●
+                </span>
+
+                Waiting for players...
+
+            </div>
+
+        </div>
+
+
+    </section>
+
+
+
+    <!-- ================================================= -->
+    <!-- GAME SCREEN -->
+    <!-- ================================================= -->
+
+    <section
+        id="gameScreen"
+        class="screen hidden"
+    >
+
+
+        <div class="game-header">
+
+
+            <div>
+
+                <small>
+                    Current Number
+                </small>
+
+                <div
+                    id="currentNumber"
+                    class="current-number"
+                >
+                    -
+                </div>
+
+            </div>
+
+
+            <div>
+
+                <small>
+                    Called
+                </small>
+
+                <div
+                    id="calledCount"
+                    class="called-count"
+                >
+                    0 / 75
+                </div>
+
+            </div>
+
+
+        </div>
+
+
+        <!-- BINGO BOARD -->
+
+        <div class="game-board-wrapper">
+
+
+            <div class="bingo-header">
+
+                <span>B</span>
+                <span>I</span>
+                <span>N</span>
+                <span>G</span>
+                <span>O</span>
+
+            </div>
+
+
+            <div
+                id="gameGrid"
+                class="bingo-grid game-grid"
+            >
+            </div>
+
+
+        </div>
+
+
+        <!-- BINGO BUTTON -->
+
+        <button
+            id="bingoBtn"
+            class="bingo-button"
+        >
+            BINGO
+        </button>
+
+
+        <!-- CALLED NUMBERS -->
+
+        <div class="section-title">
+            Called Numbers
+        </div>
+
+
+        <div
+            id="calledNumbers"
+            class="called-numbers"
+        >
+        </div>
+
+
+    </section>
+
+
+
+    <!-- ================================================= -->
+    <!-- WINNER SCREEN -->
+    <!-- ================================================= -->
+
+    <section
+        id="winnerScreen"
+        class="screen hidden"
+    >
+
+
+        <div class="winner-card">
+
+
+            <div class="winner-icon">
+                🏆
+            </div>
+
+
+            <div class="winner-title">
+                BINGO!
+            </div>
+
+
+            <div
+                id="winnerMessage"
+                class="winner-message"
+            >
+                Congratulations!
+            </div>
+
+
+            <div class="winner-prize-label">
+                Prize
+            </div>
+
+
+            <div
+                id="winnerPrize"
+                class="winner-prize"
+            >
+                0.00 ETB
+            </div>
+
+
+            <button
+                id="returnLobbyBtn"
+                class="primary-button"
+            >
+                RETURN TO LOBBY
+            </button>
+
+
+        </div>
+
+
+    </section>
+
+
 </div>
 
-<div class="wallet-bar">
-  <div class="wallet-box">
-    <span>Wallet</span>
-    <strong id="balanceInfo">0.00 ETB</strong>
-  </div>
 
-  <div class="wallet-box">
-    <span>Live Players</span>
-    <strong id="livePlayers">0</strong>
-  </div>
-</div>
 
-<div class="jackpot-box">
-  <div class="jackpot-title">🎰 Jackpot</div>
-
-  <div class="jackpot-progress">
-    <div class="jackpot-fill" style="width:25%"></div>
-  </div>
-
-  <div class="jackpot-amount">250 / 1000 ETB</div>
-</div>
-
-<div class="menu-buttons">
-  <button onclick="goToWallet()">💰 Wallet</button>
-  <button onclick="goToBoards()">🎱 Play Bingo</button>
-</div>
-
-<h2>Available Games</h2>
-
-<div id="roomsContainer">
-
-  <div class="game-card" onclick="selectRoomByFee(10)">
-    <div class="game-top">
-      <span class="bet">10 ETB</span>
-      <span class="status ready">READY</span>
-    </div>
-
-    <div class="game-middle">
-      <div>
-        Prize
-        <strong id="prize10">256 ETB</strong>
-      </div>
-
-      <div>
-        Players
-        <strong id="players10">32/100</strong>
-      </div>
-    </div>
-
-    <button class="join-btn">JOIN</button>
-  </div>
-
-  <div class="game-card" onclick="selectRoomByFee(15)">
-    <div class="game-top">
-      <span class="bet">15 ETB</span>
-      <span class="status ready">READY</span>
-    </div>
-
-    <div class="game-middle">
-      <div>
-        Prize
-        <strong id="prize15">360 ETB</strong>
-      </div>
-
-      <div>
-        Players
-        <strong id="players15">30/100</strong>
-      </div>
-    </div>
-
-    <button class="join-btn">JOIN</button>
-  </div>
-
-  <div class="game-card" onclick="selectRoomByFee(25)">
-    <div class="game-top">
-      <span class="bet">25 ETB</span>
-      <span class="status ready">READY</span>
-    </div>
-
-    <div class="game-middle">
-      <div>
-        Prize
-        <strong id="prize25">600 ETB</strong>
-      </div>
-
-      <div>
-        Players
-        <strong id="players25">24/100</strong>
-      </div>
-    </div>
-
-    <button class="join-btn">JOIN</button>
-  </div>
-
-  <div class="game-card" onclick="selectRoomByFee(50)">
-    <div class="game-top">
-      <span class="bet">50 ETB</span>
-      <span class="status ready">READY</span>
-    </div>
-
-    <div class="game-middle">
-      <div>
-        Prize
-        <strong id="prize50">1200 ETB</strong>
-      </div>
-
-      <div>
-        Players
-        <strong id="players50">12/100</strong>
-      </div>
-    </div>
-
-    <button class="join-btn">JOIN</button>
-  </div>
-
-</div>
-```
-
-  </section>
-
-  <!-- BOARD SCREEN -->
-
-  <section id="boardScreen" class="screen hidden">
-    <h2>🎱 Select Your Number</h2>
-    <p>Select one available number.</p>
-    <div id="boardContainer"></div>
-    <h3>Board Preview</h3>
-    <div id="cardPreview"></div>
-    <button id="startBtn" disabled>START GAME</button>
-    <button onclick="goToLobby()">Back</button>
-  </section>
-
-<!-- WAITING SCREEN -->
-<section id="waitingScreen" class="screen hidden waiting-screen">
-
-  <div class="waiting-card">
-
-    <h2 class="waiting-title">VAMIOS Bingo</h2>
-
-    <p class="waiting-subtitle">Preparing your game</p>
-
-    <div class="waiting-divider"></div>
-
-    <div class="waiting-row">
-      <span>Room</span>
-      <strong id="waitingRoomName">-</strong>
-    </div>
-
-    <div class="waiting-row">
-      <span>Players</span>
-      <strong><span id="waitingPlayers">0</span> / 100</strong>
-    </div>
-
-    <div class="waiting-row">
-      <span>Prize Pool</span>
-      <strong><span id="waitingPrize">0.00</span> ETB</strong>
-    </div>
-
-    <div class="waiting-divider"></div>
-    <!-- PLAYERS LIST -->
-<div class="waiting-divider"></div>
-
-<h3 class="players-title">Players Joining</h3>
-
-<div id="waitingPlayerList" class="player-list">
-  <div class="player-item">
-    <span class="player-status">●</span>
-    Waiting for players...
-  </div>
-</div>
-
-<div class="waiting-divider"></div>
-
-    <div class="countdown-circle">
-      <div class="countdown-label">STARTS IN</div>
-      <div id="countdown" class="countdown-time">60</div>
-    </div>
-
-    <p class="waiting-note">
-      Waiting for players... The game will start automatically when the countdown reaches zero.
-    </p>
-
-  </div>
-
-</section>
-
-  <!-- GAME SCREEN -->
-
-  <section id="gameScreen" class="screen hidden">
-    <h2>🎱 VAMIOS Bingo</h2>
-
-```
-<div id="currentCall">
-  <p>Current Number</p>
-  <h1 id="calledNumber">--</h1>
-</div>
-
-<div id="bingoCard" class="bingo-card"></div>
-
-<h3>Called Numbers</h3>
-<div id="calledHistory"></div>
-
-<button id="bingoBtn">🎉 BINGO!</button>
-
-<div id="winnerBox" class="hidden">
-  <h2>🏆 WINNER!</h2>
-  <p id="winnerPattern">Winning Pattern:</p>
-  <p id="winnerPrize">Prize:</p>
-</div>
-```
-
-  </section>
-
-  <!-- WALLET SCREEN -->
-
-  <section id="walletScreen" class="screen hidden">
-    <h2>💰 Wallet</h2>
-    <p id="walletBalance">Balance: 0.00 ETB</p>
-    <button onclick="goToDeposit()">💰 Deposit</button>
-    <button onclick="goToWithdraw()">💸 Withdraw</button>
-    <button onclick="goToLobby()">Back</button>
-  </section>
-
-  <!-- DEPOSIT SCREEN -->
-
-  <section id="depositScreen" class="screen hidden">
-    <h2>💰 Deposit</h2>
-    <p>Deposits are handled through the VAMIOS Bingo Telegram bot.</p>
-    <p>Please return to the Telegram bot and tap <strong>Deposit</strong>.</p>
-    <p>Minimum deposit: <strong>50 ETB</strong></p>
-    <button id="depositBtn">Open Deposit Instructions</button>
-    <button onclick="goToWallet()">Back</button>
-  </section>
-
-  <!-- WITHDRAW SCREEN -->
-
-  <section id="withdrawScreen" class="screen hidden">
-    <h2>💸 Withdraw</h2>
-    <p>Withdrawals are handled only through the VAMIOS Bingo Telegram bot.</p>
-    <p>Please return to Telegram and use the <strong>Withdraw</strong> button.</p>
-    <button onclick="goToWallet()">Back</button>
-  </section>
-
-</div>
+<!-- ================================================= -->
+<!-- JAVASCRIPT -->
+<!-- ================================================= -->
 
 <script src="supabase.js"></script>
-
 <script src="user.js"></script>
-
 <script src="wallet.js"></script>
-
 <script src="screens.js"></script>
-
 <script src="lobby.js"></script>
-
 <script src="boards.js"></script>
-
 <script src="waiting.js"></script>
-
 <script src="game.js"></script>
-
 <script src="winner.js"></script>
 
-<script src="deposit.js"></script>
 
 </body>
+
 </html>
