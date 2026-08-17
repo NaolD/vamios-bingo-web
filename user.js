@@ -1,139 +1,312 @@
-// ===============================
-// VAMIOS BINGO USER.JS
-// ===============================
-
-console.log('USER JS LOADED');
-
 // ==========================================
-// GET CURRENT TELEGRAM USER
+// VAMIOS BINGO V1
+// USER MANAGEMENT
 // ==========================================
 
-async function getCurrentUser() {
+let currentUser = null;
 
-const tg = window.Telegram?.WebApp;
-
-if (!tg) {
-console.log('Telegram WebApp not detected');
-return null;
-}
-
-tg.ready();
-
-const telegramUser = tg.initDataUnsafe?.user;
-
-if (!telegramUser) {
-console.log('Telegram user missing');
-return null;
-}
-
-const telegram_id = telegramUser.id;
 
 // ==========================================
-// FIND EXISTING USER
+// GET TELEGRAM USER
 // ==========================================
 
-let { data: user, error } = await supabaseClient
-.from('users')
-.select('*')
-.eq('telegram_id', telegram_id)
-.maybeSingle();
+function getTelegramUser() {
 
-if (error) {
-console.error('Get user error:', error);
-return null;
-}
+    if (
+        window.Telegram &&
+        window.Telegram.WebApp &&
+        window.Telegram.WebApp.initDataUnsafe &&
+        window.Telegram.WebApp.initDataUnsafe.user
+    ) {
 
-// ==========================================
-// CREATE USER IF NEW
-// ==========================================
+        return window.Telegram.WebApp.initDataUnsafe.user;
 
-if (!user) {
-
-```
-const fullName = [
-  telegramUser.first_name || '',
-  telegramUser.last_name || ''
-].join(' ').trim();
-
-const result = await supabaseClient
-  .from('users')
-  .insert([
-    {
-      telegram_id,
-      user_name: telegramUser.username || '',
-      full_name: fullName
     }
-  ])
-  .select()
-  .single();
 
-if (result.error) {
-  console.error('Create user error:', result.error);
-  return null;
+    return null;
 }
 
-user = result.data;
-```
 
+// ==========================================
+// LOAD / CREATE USER
+// ==========================================
+
+async function loadCurrentUser() {
+
+    const telegramUser = getTelegramUser();
+
+    if (!telegramUser) {
+
+        console.error("TELEGRAM USER NOT FOUND");
+
+        return null;
+    }
+
+
+    console.log(
+        "TELEGRAM USER:",
+        telegramUser
+    );
+
+
+    // --------------------------------------
+    // Find existing user
+    // --------------------------------------
+
+    const { data: existingUser, error } =
+        await supabase
+            .from("users")
+            .select("*")
+            .eq("telegram_id", telegramUser.id)
+            .maybeSingle();
+
+
+    if (error) {
+
+        console.error(
+            "USER LOOKUP ERROR:",
+            error
+        );
+
+        return null;
+    }
+
+
+    // --------------------------------------
+    // Existing user
+    // --------------------------------------
+
+    if (existingUser) {
+
+        currentUser = existingUser;
+
+        console.log(
+            "EXISTING USER:",
+            currentUser
+        );
+
+        await ensureWallet(
+            currentUser.id
+        );
+
+        return currentUser;
+    }
+
+
+    // --------------------------------------
+    // Create new user
+    // --------------------------------------
+
+    const { data: newUser, error: createError } =
+        await supabase
+            .from("users")
+            .insert({
+
+                telegram_id: telegramUser.id,
+
+                username:
+                    telegramUser.username || null,
+
+                first_name:
+                    telegramUser.first_name || null,
+
+                last_name:
+                    telegramUser.last_name || null
+
+            })
+            .select()
+            .single();
+
+
+    if (createError) {
+
+        console.error(
+            "USER CREATE ERROR:",
+            createError
+        );
+
+        return null;
+    }
+
+
+    currentUser = newUser;
+
+
+    console.log(
+        "NEW USER CREATED:",
+        currentUser
+    );
+
+
+    await ensureWallet(
+        currentUser.id
+    );
+
+
+    return currentUser;
 }
+
 
 // ==========================================
 // ENSURE WALLET EXISTS
 // ==========================================
 
-const { data: wallet } = await supabaseClient
-.from('wallets')
-.select('*')
-.eq('user_id', user.id)
-.maybeSingle();
+async function ensureWallet(userId) {
 
-if (!wallet) {
+    const { data: wallet, error } =
+        await supabase
+            .from("wallets")
+            .select("*")
+            .eq("user_id", userId)
+            .maybeSingle();
 
-```
-await supabaseClient
-  .from('wallets')
-  .insert([
-    {
-      user_id: user.id,
-      balance: 0
+
+    if (error) {
+
+        console.error(
+            "WALLET LOOKUP ERROR:",
+            error
+        );
+
+        return null;
     }
-  ]);
-```
 
+
+    if (wallet) {
+
+        return wallet;
+    }
+
+
+    const { data: newWallet, error: createError } =
+        await supabase
+            .from("wallets")
+            .insert({
+
+                user_id: userId,
+
+                balance: 0
+
+            })
+            .select()
+            .single();
+
+
+    if (createError) {
+
+        console.error(
+            "WALLET CREATE ERROR:",
+            createError
+        );
+
+        return null;
+    }
+
+
+    console.log(
+        "WALLET CREATED:",
+        newWallet
+    );
+
+
+    return newWallet;
 }
 
+
 // ==========================================
-// SAVE USER LOCALLY
+// GET CURRENT USER
 // ==========================================
 
-localStorage.setItem('userId', user.id);
-localStorage.setItem('telegramId', telegram_id);
+function getCurrentUser() {
 
-const info = document.getElementById('playerInfo');
-if (info) {
-info.textContent = user.full_name || user.user_name || 'Player';
+    return currentUser;
 }
 
-return user;
 
+// ==========================================
+// GET CURRENT USER ID
+// ==========================================
+
+function getCurrentUserId() {
+
+    return currentUser
+        ? currentUser.id
+        : null;
 }
 
+
 // ==========================================
-// TELEGRAM HELPERS
+// GET WALLET
 // ==========================================
 
-function getTelegramUserId() {
-return window.Telegram?.WebApp?.initDataUnsafe?.user?.id || null;
+async function getCurrentWallet() {
+
+    const userId =
+        getCurrentUserId();
+
+
+    if (!userId) {
+
+        return null;
+    }
+
+
+    const { data: wallet, error } =
+        await supabase
+            .from("wallets")
+            .select("*")
+            .eq("user_id", userId)
+            .single();
+
+
+    if (error) {
+
+        console.error(
+            "GET WALLET ERROR:",
+            error
+        );
+
+        return null;
+    }
+
+
+    return wallet;
 }
 
-function getTelegramUser() {
-return window.Telegram?.WebApp?.initDataUnsafe?.user || null;
+
+// ==========================================
+// INITIALIZE USER SYSTEM
+// ==========================================
+
+async function initializeUser() {
+
+    console.log(
+        "INITIALIZING USER..."
+    );
+
+
+    const user =
+        await loadCurrentUser();
+
+
+    if (!user) {
+
+        console.error(
+            "USER INITIALIZATION FAILED"
+        );
+
+        return null;
+    }
+
+
+    console.log(
+        "USER INITIALIZED:",
+        user.id
+    );
+
+
+    return user;
 }
 
-// ==========================================
-// AUTO LOAD USER
-// ==========================================
 
-document.addEventListener('DOMContentLoaded', () => {
-getCurrentUser();
-});
+console.log("USER JS LOADED");
