@@ -1,390 +1,352 @@
-// ======================================
-// VAMIOS BINGO - LOBBY.JS
-// ======================================
+// ==========================================
+// VAMIOS BINGO V1
+// LOBBY
+// ==========================================
 
-console.log("LOBBY.JS LOADED");
-
-
-// ======================================
-// LOAD LOBBY
-// ======================================
-
-async function loadLobby() {
-
-    try {
-
-        console.log("Loading lobby...");
-
-        const user =
-            await getCurrentUser();
-
-        if (!user) {
-
-            console.log(
-                "No current user yet"
-            );
-
-            return;
-        }
+let selectedEntryFee = null;
 
 
-        const balance =
-            await getBalance(user.id);
+// ==========================================
+// INITIALIZE LOBBY
+// ==========================================
 
+async function initializeLobby() {
 
-        const balanceInfo =
-            document.getElementById(
-                "balanceInfo"
-            );
+    console.log("INITIALIZING LOBBY");
 
-        if (balanceInfo) {
+    setConnectionStatus("Connecting...", false);
 
-            balanceInfo.innerText =
-                Number(balance).toFixed(2)
-                + " ETB";
+    // --------------------------------------
+    // Initialize Telegram
+    // --------------------------------------
 
-        }
+    if (
+        window.Telegram &&
+        window.Telegram.WebApp
+    ) {
 
+        try {
 
-        const walletBalance =
-            document.getElementById(
-                "walletBalance"
-            );
+            window.Telegram.WebApp.ready();
 
-        if (walletBalance) {
+            window.Telegram.WebApp.expand();
 
-            walletBalance.innerText =
-                "Balance: "
-                + Number(balance).toFixed(2)
-                + " ETB";
-
-        }
-
-
-        await loadRooms();
-
-    }
-
-    catch (err) {
-
-        console.error(
-            "Lobby load error:",
-            err
-        );
-
-    }
-
-}
-
-
-// ======================================
-// LOAD ROOMS
-// ======================================
-
-async function loadRooms() {
-
-    try {
-
-        const {
-            data: rooms,
-            error
-        } =
-            await supabase
-                .from("rooms")
-                .select("*")
-                .order(
-                    "entry_fee"
-                );
-
-
-        if (error) {
+        } catch (error) {
 
             console.error(
-                "Load rooms error:",
+                "TELEGRAM INIT ERROR:",
                 error
             );
 
-            return;
         }
-
-
-        if (!rooms) {
-
-            console.log(
-                "No rooms found"
-            );
-
-            return;
-        }
-
-
-        let totalPlayers = 0;
-
-
-        rooms.forEach(
-            room => {
-
-                const players =
-                    Number(
-                        room.current_players || 0
-                    );
-
-                const fee =
-                    Number(
-                        room.entry_fee || 0
-                    );
-
-
-                totalPlayers +=
-                    players;
-
-
-                const playersEl =
-                    document.getElementById(
-                        "players" + fee
-                    );
-
-
-                if (playersEl) {
-
-                    playersEl.innerText =
-                        `${players}/${room.max_players || 100}`;
-
-                }
-
-
-                const prize =
-                    players *
-                    fee *
-                    0.80;
-
-
-                const prizeEl =
-                    document.getElementById(
-                        "prize" + fee
-                    );
-
-
-                if (prizeEl) {
-
-                    prizeEl.innerText =
-                        prize.toFixed(0)
-                        + " ETB";
-
-                }
-
-            }
-        );
-
-
-        const livePlayers =
-            document.getElementById(
-                "livePlayers"
-            );
-
-
-        if (livePlayers) {
-
-            livePlayers.innerText =
-                totalPlayers;
-
-        }
-
-
-        console.log(
-            "Rooms loaded:",
-            rooms
-        );
 
     }
 
-    catch (err) {
 
-        console.error(
-            "loadRooms error:",
-            err
+    // --------------------------------------
+    // Initialize user
+    // --------------------------------------
+
+    const user =
+        await initializeUser();
+
+
+    if (!user) {
+
+        setConnectionStatus(
+            "Telegram not detected",
+            false
         );
 
+        return false;
     }
+
+
+    // --------------------------------------
+    // Load wallet
+    // --------------------------------------
+
+    await initializeWallet();
+
+
+    // --------------------------------------
+    // Display user
+    // --------------------------------------
+
+    const playerName =
+        document.getElementById(
+            "playerName"
+        );
+
+
+    if (playerName) {
+
+        let name =
+            user.first_name ||
+            user.username ||
+            "Player";
+
+
+        if (
+            user.last_name
+        ) {
+
+            name +=
+                " " +
+                user.last_name;
+
+        }
+
+
+        playerName.textContent =
+            name;
+    }
+
+
+    // --------------------------------------
+    // Connection
+    // --------------------------------------
+
+    setConnectionStatus(
+        "Connected",
+        true
+    );
+
+
+    // --------------------------------------
+    // Load room statistics
+    // --------------------------------------
+
+    await loadRoomStatistics();
+
+
+    // --------------------------------------
+    // Setup fee buttons
+    // --------------------------------------
+
+    setupFeeButtons();
+
+
+    console.log(
+        "LOBBY READY"
+    );
+
+
+    return true;
+}
+
+
+// ==========================================
+// FEE BUTTONS
+// ==========================================
+
+function setupFeeButtons() {
+
+    const buttons =
+        document.querySelectorAll(
+            ".fee-button"
+        );
+
+
+    console.log(
+        "FEE BUTTONS:",
+        buttons.length
+    );
+
+
+    buttons.forEach(
+        (button) => {
+
+            button.onclick =
+                async function () {
+
+                    const fee =
+                        Number(
+                            button.dataset.fee
+                        );
+
+
+                    await selectEntryFee(
+                        fee
+                    );
+
+                };
+
+        }
+    );
 
 }
 
 
-// ======================================
-// SELECT ROOM BY FEE
-// ======================================
+// ==========================================
+// SELECT ENTRY FEE
+// ==========================================
 
-async function selectRoomByFee(
-    entryFee
+async function selectEntryFee(
+    fee
 ) {
 
     console.log(
-        "ROOM CLICKED:",
-        entryFee
-    );
-
-
-    try {
-
-        const {
-            data: room,
-            error
-        } =
-            await supabase
-                .from("rooms")
-                .select("*")
-                .eq(
-                    "entry_fee",
-                    Number(entryFee)
-                )
-                .maybeSingle();
-
-
-        if (error) {
-
-            console.error(
-                "Room lookup error:",
-                error
-            );
-
-            alert(
-                "Could not load this game room."
-            );
-
-            return;
-        }
-
-
-        if (!room) {
-
-            console.error(
-                "Room not found for:",
-                entryFee
-            );
-
-            alert(
-                "Room not found in Supabase."
-            );
-
-            return;
-        }
-
-
-        console.log(
-            "Selected room:",
-            room
-        );
-
-
-        // Save room information
-        localStorage.setItem(
-            "room_id",
-            String(room.id)
-        );
-
-
-        localStorage.setItem(
-            "room_name",
-            room.name || ""
-        );
-
-
-        localStorage.setItem(
-            "selectedFee",
-            String(entryFee)
-        );
-
-
-        // Open board screen
-        showScreen(
-            "boardScreen"
-        );
-
-
-        // Initialize board selection
-        if (
-            typeof initializeBoardSelection
-            === "function"
-        ) {
-
-            initializeBoardSelection();
-
-        }
-
-    }
-
-    catch (err) {
-
-        console.error(
-            "selectRoomByFee error:",
-            err
-        );
-
-        alert(
-            "Could not open room."
-        );
-
-    }
-
-}
-
-
-// ======================================
-// PLAY BINGO BUTTON
-// ======================================
-
-function goToBoards() {
-
-    console.log(
-        "Play Bingo clicked"
-    );
-
-
-    showScreen(
-        "boardScreen"
+        "SELECTED FEE:",
+        fee
     );
 
 
     if (
-        typeof initializeBoardSelection
-        === "function"
+        ![10, 15, 25, 50].includes(
+            fee
+        )
     ) {
 
-        initializeBoardSelection();
-
-    }
-
-}
-
-
-// ======================================
-// BACK TO LOBBY
-// ======================================
-
-function goToLobby() {
-
-    showScreen(
-        "lobbyScreen"
-    );
-
-    loadLobby();
-
-}
-
-
-// ======================================
-// AUTO LOAD
-// ======================================
-
-document.addEventListener(
-    "DOMContentLoaded",
-    function () {
-
-        console.log(
-            "Lobby DOM ready"
+        console.error(
+            "INVALID ENTRY FEE:",
+            fee
         );
 
-        loadLobby();
+        return;
+    }
+
+
+    // --------------------------------------
+    // Check wallet
+    // --------------------------------------
+
+    if (
+        !hasEnoughBalance(
+            fee
+        )
+    ) {
+
+        alert(
+            "Insufficient balance."
+        );
+
+        return;
+    }
+
+
+    selectedEntryFee =
+        fee;
+
+
+    // --------------------------------------
+    // Open board selection
+    // --------------------------------------
+
+    if (
+        typeof initializeBoards ===
+        "function"
+    ) {
+
+        await initializeBoards(
+            fee
+        );
+
+    } else {
+
+        console.error(
+            "initializeBoards() NOT FOUND"
+        );
+
+        return;
+    }
+
+
+    showBoardScreen();
+
+}
+
+
+// ==========================================
+// LOAD ROOM STATISTICS
+// ==========================================
+
+async function loadRoomStatistics() {
+
+    const {
+        data: rooms,
+        error
+    } =
+        await supabase
+            .from("rooms")
+            .select(
+                "entry_fee, max_players, status"
+            )
+            .in(
+                "entry_fee",
+                [10, 15, 25, 50]
+            );
+
+
+    if (error) {
+
+        console.error(
+            "ROOM STATISTICS ERROR:",
+            error
+        );
+
+        return;
+    }
+
+
+    // --------------------------------------
+    // Total live players
+    // --------------------------------------
+
+    const livePlayers =
+        document.getElementById(
+            "livePlayers"
+        );
+
+
+    if (livePlayers) {
+
+        // Player counts will be loaded
+        // properly once games exist.
+
+        livePlayers.textContent =
+            "0";
 
     }
+
+
+    // --------------------------------------
+    // Jackpot
+    // --------------------------------------
+
+    const jackpot =
+        document.getElementById(
+            "jackpot"
+        );
+
+
+    if (jackpot) {
+
+        jackpot.textContent =
+            "0.00 ETB";
+
+    }
+
+
+    console.log(
+        "ROOMS:",
+        rooms
+    );
+
+}
+
+
+// ==========================================
+// GET SELECTED ENTRY FEE
+// ==========================================
+
+function getSelectedEntryFee() {
+
+    return selectedEntryFee;
+
+}
+
+
+console.log(
+    "LOBBY JS LOADED"
 );
