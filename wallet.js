@@ -1,151 +1,320 @@
-// ===============================
-// VAMIOS BINGO WALLET.JS
-// ===============================
+// ==========================================
+// VAMIOS BINGO V1
+// WALLET MANAGEMENT
+// ==========================================
 
-// Get wallet
-async function getWallet(userId) {
-const { data, error } = await supabaseClient
-.from('wallets')
-.select('*')
-.eq('user_id', userId)
-.single();
 
-if (error) {
-console.log('Wallet error:', error.message);
-return null;
+let walletBalance = 0;
+
+
+// ==========================================
+// LOAD WALLET
+// ==========================================
+
+async function loadWallet() {
+
+    const userId =
+        getCurrentUserId();
+
+
+    if (!userId) {
+
+        console.error(
+            "WALLET: USER ID NOT AVAILABLE"
+        );
+
+        return null;
+    }
+
+
+    const {
+        data: wallet,
+        error
+    } =
+        await supabase
+            .from("wallets")
+            .select("*")
+            .eq("user_id", userId)
+            .maybeSingle();
+
+
+    if (error) {
+
+        console.error(
+            "WALLET LOAD ERROR:",
+            error
+        );
+
+        return null;
+    }
+
+
+    if (!wallet) {
+
+        console.error(
+            "WALLET NOT FOUND"
+        );
+
+        return null;
+    }
+
+
+    walletBalance =
+        Number(wallet.balance || 0);
+
+
+    updateWalletDisplay();
+
+
+    return wallet;
 }
 
-return data;
+
+// ==========================================
+// UPDATE WALLET DISPLAY
+// ==========================================
+
+function updateWalletDisplay() {
+
+    const element =
+        document.getElementById(
+            "walletBalance"
+        );
+
+
+    if (!element) {
+        return;
+    }
+
+
+    element.textContent =
+        walletBalance.toFixed(2) +
+        " ETB";
 }
 
-// Create wallet if missing
-async function createWallet(userId) {
-let wallet = await getWallet(userId);
 
-if (wallet) return wallet;
+// ==========================================
+// GET BALANCE
+// ==========================================
 
-const { data, error } = await supabaseClient
-.from('wallets')
-.insert([
-{
-user_id: userId,
-balance: 0
-}
-])
-.select()
-.single();
+function getWalletBalance() {
 
-if (error) {
-console.log(error);
-return null;
+    return walletBalance;
 }
 
-return data;
+
+// ==========================================
+// CHECK BALANCE
+// ==========================================
+
+function hasEnoughBalance(
+    amount
+) {
+
+    return (
+        walletBalance >=
+        Number(amount)
+    );
+
 }
 
-// Get balance
-async function getBalance(userId) {
-const wallet = await createWallet(userId);
-if (!wallet) return 0;
-return Number(wallet.balance);
+
+// ==========================================
+// DEDUCT ENTRY FEE
+// ==========================================
+//
+// We will use this later when a player
+// actually joins a game.
+//
+// For now this function is prepared,
+// but the lobby will not call it yet.
+//
+
+async function deductEntryFee(
+    amount
+) {
+
+    const userId =
+        getCurrentUserId();
+
+
+    if (!userId) {
+
+        console.error(
+            "DEDUCT: USER NOT FOUND"
+        );
+
+        return {
+            success: false,
+            error: "User not found"
+        };
+    }
+
+
+    amount =
+        Number(amount);
+
+
+    if (
+        !Number.isFinite(amount) ||
+        amount <= 0
+    ) {
+
+        return {
+            success: false,
+            error: "Invalid amount"
+        };
+    }
+
+
+    // --------------------------------------
+    // Read current wallet
+    // --------------------------------------
+
+    const {
+        data: wallet,
+        error: walletError
+    } =
+        await supabase
+            .from("wallets")
+            .select("*")
+            .eq("user_id", userId)
+            .single();
+
+
+    if (walletError) {
+
+        console.error(
+            "WALLET READ ERROR:",
+            walletError
+        );
+
+        return {
+            success: false,
+            error: "Wallet error"
+        };
+    }
+
+
+    if (
+        Number(wallet.balance) <
+        amount
+    ) {
+
+        return {
+            success: false,
+            error: "Insufficient balance"
+        };
+    }
+
+
+    // --------------------------------------
+    // Deduct
+    // --------------------------------------
+
+    const newBalance =
+        Number(wallet.balance) -
+        amount;
+
+
+    const {
+        data: updatedWallet,
+        error: updateError
+    } =
+        await supabase
+            .from("wallets")
+            .update({
+                balance: newBalance,
+                updated_at: new Date().toISOString()
+            })
+            .eq("user_id", userId)
+            .select()
+            .single();
+
+
+    if (updateError) {
+
+        console.error(
+            "WALLET UPDATE ERROR:",
+            updateError
+        );
+
+        return {
+            success: false,
+            error: "Could not update wallet"
+        };
+    }
+
+
+    // --------------------------------------
+    // Record transaction
+    // --------------------------------------
+
+    const {
+        error: transactionError
+    } =
+        await supabase
+            .from("transactions")
+            .insert({
+
+                user_id: userId,
+
+                type: "entry_fee",
+
+                amount: amount,
+
+                status: "completed",
+
+                description:
+                    "Bingo entry fee"
+
+            });
+
+
+    if (transactionError) {
+
+        console.error(
+            "TRANSACTION ERROR:",
+            transactionError
+        );
+
+        // The wallet has already been deducted.
+        // We will replace this with an atomic
+        // database transaction later.
+    }
+
+
+    walletBalance =
+        newBalance;
+
+
+    updateWalletDisplay();
+
+
+    return {
+        success: true,
+        balance: newBalance
+    };
+
 }
 
-// Refresh balance on screen
-async function refreshBalance() {
-const userId = localStorage.getItem('userId');
-if (!userId) return;
 
-const balance = await getBalance(userId);
+// ==========================================
+// INITIALIZE WALLET
+// ==========================================
 
-const lobby = document.getElementById('balanceInfo');
-if (lobby) lobby.textContent = balance.toFixed(2) + ' ETB';
+async function initializeWallet() {
 
-const wallet = document.getElementById('walletBalance');
-if (wallet) wallet.textContent = 'Balance: ' + balance.toFixed(2) + ' ETB';
+    console.log(
+        "INITIALIZING WALLET"
+    );
+
+
+    return await loadWallet();
+
 }
 
-// Deduct game entry fee
-async function deductBalance(userId, amount) {
-const wallet = await createWallet(userId);
 
-if (!wallet) {
-alert('Wallet not found');
-return false;
-}
-
-if (Number(wallet.balance) < Number(amount)) {
-alert('Insufficient balance');
-return false;
-}
-
-const newBalance =
-Number(wallet.balance) - Number(amount);
-
-const { error } = await supabaseClient
-.from('wallets')
-.update({
-balance: newBalance,
-updated_at: new Date()
-})
-.eq('user_id', userId);
-
-if (error) {
-console.log(error);
-return false;
-}
-
-await supabaseClient
-.from('transactions')
-.insert([
-{
-user_id: userId,
-type: 'game_entry',
-amount: -Number(amount),
-description: 'Bingo entry fee',
-status: 'completed'
-}
-]);
-
-await refreshBalance();
-
-return true;
-}
-
-// Add prize to winner wallet
-async function addPrize(userId, amount) {
-const wallet = await createWallet(userId);
-
-if (!wallet) return false;
-
-const newBalance =
-Number(wallet.balance) + Number(amount);
-
-await supabaseClient
-.from('wallets')
-.update({
-balance: newBalance,
-updated_at: new Date()
-})
-.eq('user_id', userId);
-
-await supabaseClient
-.from('transactions')
-.insert([
-{
-user_id: userId,
-type: 'prize',
-amount: Number(amount),
-description: 'Bingo winner prize',
-status: 'completed'
-}
-]);
-
-await refreshBalance();
-
-return true;
-}
-
-// Auto refresh when page loads
-document.addEventListener('DOMContentLoaded', () => {
-setTimeout(refreshBalance, 500);
-});
+console.log(
+    "WALLET JS LOADED"
+);
