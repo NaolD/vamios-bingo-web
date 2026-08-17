@@ -567,6 +567,33 @@
 <script src="game.js"></script>
 <script src="winner.js"></script>
 
+<script>
+    document.addEventListener(
+        "DOMContentLoaded",
+        async function () {
+
+            console.log(
+                "VAMIOS APP STARTING"
+            );
+
+            if (
+                typeof initializeLobby ===
+                "function"
+            ) {
+
+                await initializeLobby();
+
+            } else {
+
+                console.error(
+                    "initializeLobby() NOT FOUND"
+                );
+
+            }
+
+        }
+    );
+</script>
 
 </body>
 
