@@ -1,69 +1,198 @@
-// ===============================
-// VAMIOS BINGO SCREEN MANAGER
-// ===============================
+// ==========================================
+// VAMIOS BINGO V1
+// SCREEN MANAGEMENT
+// ==========================================
 
-const screens = [
-'lobbyScreen',
-'boardScreen',
-'waitingScreen',
-'gameScreen',
-'walletScreen',
-'depositScreen',
-'withdrawScreen'
+const SCREEN_IDS = [
+    "lobbyScreen",
+    "boardScreen",
+    "waitingScreen",
+    "gameScreen",
+    "winnerScreen"
 ];
 
+
+// ==========================================
+// SHOW SCREEN
+// ==========================================
+
 function showScreen(screenId) {
-screens.forEach(id => {
-const el = document.getElementById(id);
-if (!el) return;
 
-```
-if (id === screenId) {
-  el.classList.remove('hidden');
-} else {
-  el.classList.add('hidden');
-}
-```
+    console.log(
+        "SHOW SCREEN:",
+        screenId
+    );
 
-});
-}
 
-// ===============================
-// NAVIGATION FUNCTIONS
-// ===============================
+    SCREEN_IDS.forEach((id) => {
 
-function goToLobby() {
-showScreen('lobbyScreen');
-}
+        const screen =
+            document.getElementById(id);
 
-function goToBoards() {
-showScreen('boardScreen');
-}
+        if (!screen) {
+            return;
+        }
 
-function goToWaiting() {
-showScreen('waitingScreen');
-}
+        if (id === screenId) {
 
-function goToGame() {
-showScreen('gameScreen');
-}
+            screen.classList.remove(
+                "hidden"
+            );
 
-function goToWallet() {
-showScreen('walletScreen');
+        } else {
+
+            screen.classList.add(
+                "hidden"
+            );
+
+        }
+
+    });
+
 }
 
-function goToDeposit() {
-showScreen('depositScreen');
+
+// ==========================================
+// HIDE SCREEN
+// ==========================================
+
+function hideScreen(screenId) {
+
+    const screen =
+        document.getElementById(
+            screenId
+        );
+
+    if (screen) {
+
+        screen.classList.add(
+            "hidden"
+        );
+
+    }
+
 }
 
-function goToWithdraw() {
-showScreen('withdrawScreen');
+
+// ==========================================
+// INITIAL SCREEN
+// ==========================================
+
+function showLobby() {
+
+    showScreen(
+        "lobbyScreen"
+    );
+
 }
 
-// ===============================
-// START ON LOBBY
-// ===============================
 
-document.addEventListener('DOMContentLoaded', () => {
-showScreen('lobbyScreen');
-});
+// ==========================================
+// BOARD SCREEN
+// ==========================================
+
+function showBoardScreen() {
+
+    showScreen(
+        "boardScreen"
+    );
+
+}
+
+
+// ==========================================
+// WAITING SCREEN
+// ==========================================
+
+function showWaitingScreen() {
+
+    showScreen(
+        "waitingScreen"
+    );
+
+}
+
+
+// ==========================================
+// GAME SCREEN
+// ==========================================
+
+function showGameScreen() {
+
+    showScreen(
+        "gameScreen"
+    );
+
+}
+
+
+// ==========================================
+// WINNER SCREEN
+// ==========================================
+
+function showWinnerScreen() {
+
+    showScreen(
+        "winnerScreen"
+    );
+
+}
+
+
+// ==========================================
+// UPDATE CONNECTION STATUS
+// ==========================================
+
+function setConnectionStatus(
+    message,
+    connected = false
+) {
+
+    const element =
+        document.getElementById(
+            "connectionStatus"
+        );
+
+    if (!element) {
+        return;
+    }
+
+
+    element.textContent =
+        message;
+
+
+    if (connected) {
+
+        element.style.color =
+            "#22c55e";
+
+    } else {
+
+        element.style.color =
+            "#94a3b8";
+
+    }
+
+}
+
+
+// ==========================================
+// INITIALIZE SCREENS
+// ==========================================
+
+function initializeScreens() {
+
+    console.log(
+        "INITIALIZING SCREENS"
+    );
+
+
+    showLobby();
+
+}
+
+
+console.log(
+    "SCREENS JS LOADED"
+);
