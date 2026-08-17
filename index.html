@@ -566,33 +566,90 @@
 <script src="waiting.js"></script>
 <script src="game.js"></script>
 <script src="winner.js"></script>
-
 <script>
-    document.addEventListener(
-        "DOMContentLoaded",
-        async function () {
+document.addEventListener("DOMContentLoaded", async function () {
 
-            console.log(
-                "VAMIOS APP STARTING"
-            );
+    const status =
+        document.getElementById("connectionStatus");
 
-            if (
-                typeof initializeLobby ===
-                "function"
-            ) {
+    function show(message) {
 
-                await initializeLobby();
+        if (status) {
+            status.textContent = message;
+        }
 
-            } else {
+        alert(message);
+    }
 
-                console.error(
-                    "initializeLobby() NOT FOUND"
-                );
 
-            }
+    show("STEP 1: APP STARTED");
+
+
+    if (
+        typeof supabase === "undefined"
+    ) {
+
+        show("ERROR: SUPABASE NOT LOADED");
+
+        return;
+    }
+
+
+    show("STEP 2: SUPABASE LOADED");
+
+
+    if (
+        typeof initializeUser !== "function"
+    ) {
+
+        show("ERROR: USER JS NOT LOADED");
+
+        return;
+    }
+
+
+    show("STEP 3: USER JS LOADED");
+
+
+    if (
+        typeof initializeLobby !== "function"
+    ) {
+
+        show("ERROR: LOBBY JS NOT LOADED");
+
+        return;
+    }
+
+
+    show("STEP 4: LOBBY JS LOADED");
+
+
+    try {
+
+        const result =
+            await initializeLobby();
+
+
+        if (result) {
+
+            show("STEP 5: LOBBY INITIALIZED");
+
+        } else {
+
+            show("ERROR: LOBBY INITIALIZATION FAILED");
 
         }
-    );
+
+    } catch (error) {
+
+        show(
+            "ERROR: " +
+            error.message
+        );
+
+    }
+
+});
 </script>
 
 </body>
