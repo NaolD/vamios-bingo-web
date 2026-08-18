@@ -30,7 +30,7 @@
 
 
 <!-- ================================================= -->
-<!-- APP -->
+<!-- VAMIOS BINGO APP -->
 <!-- ================================================= -->
 
 <div id="app">
@@ -46,8 +46,10 @@
             VAMIOS BINGO
         </div>
 
-        <div id="connectionStatus"
-             class="connection-status">
+        <div
+            id="connectionStatus"
+            class="connection-status"
+        >
             Connecting...
         </div>
 
@@ -55,7 +57,7 @@
 
 
     <!-- ================================================= -->
-    <!-- LOBBY SCREEN -->
+    <!-- LOBBY -->
     <!-- ================================================= -->
 
     <section
@@ -106,42 +108,72 @@
 
         <div class="fee-grid">
 
-
             <button
                 class="fee-button"
                 data-fee="10"
+                type="button"
             >
-                <span>10 ETB</span>
-                <small>Game #1001</small>
+
+                <span>
+                    10 ETB
+                </span>
+
+                <small>
+                    Game #1001
+                </small>
+
             </button>
 
 
             <button
                 class="fee-button"
                 data-fee="15"
+                type="button"
             >
-                <span>15 ETB</span>
-                <small>Game #1002</small>
+
+                <span>
+                    15 ETB
+                </span>
+
+                <small>
+                    Game #1002
+                </small>
+
             </button>
 
 
             <button
                 class="fee-button"
                 data-fee="25"
+                type="button"
             >
-                <span>25 ETB</span>
-                <small>Game #1003</small>
+
+                <span>
+                    25 ETB
+                </span>
+
+                <small>
+                    Game #1003
+                </small>
+
             </button>
 
 
             <button
                 class="fee-button"
                 data-fee="50"
+                type="button"
             >
-                <span>50 ETB</span>
-                <small>Game #1004</small>
-            </button>
 
+                <span>
+                    50 ETB
+                </span>
+
+                <small>
+                    Game #1004
+                </small>
+
+            </button>
 
         </div>
 
@@ -177,7 +209,6 @@
 
         </div>
 
-
     </section>
 
 
@@ -191,7 +222,6 @@
         class="screen hidden"
     >
 
-
         <div class="screen-title">
             Choose Your Board
         </div>
@@ -200,17 +230,24 @@
         <div class="selection-info">
 
             <div>
+
                 Entry:
+
                 <strong id="selectedFee">
                     0 ETB
                 </strong>
+
             </div>
 
+
             <div>
+
                 Board:
+
                 <strong id="selectedBoardNumber">
                     None
                 </strong>
+
             </div>
 
         </div>
@@ -237,13 +274,10 @@
             <div
                 id="previewGrid"
                 class="bingo-grid"
-            >
-            </div>
+            ></div>
 
         </div>
 
-
-        <!-- BOARD NUMBERS -->
 
         <div class="section-title">
             Select Board Number
@@ -253,15 +287,13 @@
         <div
             id="boardNumbers"
             class="board-numbers"
-        >
-        </div>
+        ></div>
 
-
-        <!-- START GAME -->
 
         <button
             id="startGameBtn"
             class="primary-button"
+            type="button"
             disabled
         >
             START GAME
@@ -271,10 +303,10 @@
         <button
             id="backToLobbyBtn"
             class="secondary-button"
+            type="button"
         >
             BACK
         </button>
-
 
     </section>
 
@@ -289,14 +321,12 @@
         class="screen hidden"
     >
 
-
         <div class="screen-title">
             Waiting Room
         </div>
 
 
         <div class="waiting-room-card">
-
 
             <div
                 id="waitingRoomName"
@@ -321,7 +351,6 @@
 
             <div class="waiting-stats">
 
-
                 <div>
 
                     <span>
@@ -329,10 +358,13 @@
                     </span>
 
                     <strong>
+
                         <span id="waitingPlayers">
                             0
                         </span>
+
                         / 100
+
                     </strong>
 
                 </div>
@@ -345,22 +377,21 @@
                     </span>
 
                     <strong>
+
                         <span id="waitingPrize">
                             0.00
                         </span>
+
                         ETB
+
                     </strong>
 
                 </div>
 
-
             </div>
-
 
         </div>
 
-
-        <!-- PLAYERS -->
 
         <div class="section-title">
             Players
@@ -384,13 +415,12 @@
 
         </div>
 
-
     </section>
 
 
 
     <!-- ================================================= -->
-    <!-- GAME SCREEN -->
+    <!-- GAME -->
     <!-- ================================================= -->
 
     <section
@@ -398,9 +428,7 @@
         class="screen hidden"
     >
 
-
         <div class="game-header">
-
 
             <div>
 
@@ -433,14 +461,10 @@
 
             </div>
 
-
         </div>
 
 
-        <!-- BINGO BOARD -->
-
         <div class="game-board-wrapper">
-
 
             <div class="bingo-header">
 
@@ -456,24 +480,19 @@
             <div
                 id="gameGrid"
                 class="bingo-grid game-grid"
-            >
-            </div>
-
+            ></div>
 
         </div>
 
 
-        <!-- BINGO BUTTON -->
-
         <button
             id="bingoBtn"
             class="bingo-button"
+            type="button"
         >
             BINGO
         </button>
 
-
-        <!-- CALLED NUMBERS -->
 
         <div class="section-title">
             Called Numbers
@@ -483,16 +502,14 @@
         <div
             id="calledNumbers"
             class="called-numbers"
-        >
-        </div>
-
+        ></div>
 
     </section>
 
 
 
     <!-- ================================================= -->
-    <!-- WINNER SCREEN -->
+    <!-- WINNER -->
     <!-- ================================================= -->
 
     <section
@@ -500,9 +517,7 @@
         class="screen hidden"
     >
 
-
         <div class="winner-card">
-
 
             <div class="winner-icon">
                 🏆
@@ -538,13 +553,12 @@
             <button
                 id="returnLobbyBtn"
                 class="primary-button"
+                type="button"
             >
                 RETURN TO LOBBY
             </button>
 
-
         </div>
-
 
     </section>
 
@@ -552,9 +566,8 @@
 </div>
 
 
-
 <!-- ================================================= -->
-<!-- JAVASCRIPT -->
+<!-- JAVASCRIPT FILES -->
 <!-- ================================================= -->
 
 <script src="supabase.js"></script>
@@ -566,89 +579,153 @@
 <script src="waiting.js"></script>
 <script src="game.js"></script>
 <script src="winner.js"></script>
+
+
+<!-- ================================================= -->
+<!-- APPLICATION STARTUP -->
+<!-- ================================================= -->
+
 <script>
-document.addEventListener("DOMContentLoaded", async function () {
-    const status =
-        document.getElementById("connectionStatus");
-    function show(message) {
 
-        if (status) {
-            status.textContent = message;
-        }
+document.addEventListener(
+    "DOMContentLoaded",
+    async function () {
 
-        alert(message);
-    }
+        function show(message) {
 
+            const status =
+                document.getElementById(
+                    "connectionStatus"
+                );
 
-    show("STEP 1: APP STARTED");
+            if (status) {
 
+                status.textContent =
+                    message;
 
-    if (
-        typeof supabase === "undefined"
-    ) {
+            }
 
-        show("ERROR: SUPABASE NOT LOADED");
-
-        return;
-    }
-
-
-    show("STEP 2: SUPABASE LOADED");
-
-
-    if (
-        typeof initializeUser !== "function"
-    ) {
-
-        show("ERROR: USER JS NOT LOADED");
-
-        return;
-    }
-
-
-    show("STEP 3: USER JS LOADED");
-
-
-    if (
-        typeof initializeLobby !== "function"
-    ) {
-
-        show("ERROR: LOBBY JS NOT LOADED");
-
-        return;
-    }
-
-
-    show("STEP 4: LOBBY JS LOADED");
-
-
-    try {
-
-        const result =
-            await initializeLobby();
-
-
-        if (result) {
-
-            show("STEP 5: LOBBY INITIALIZED");
-
-        } else {
-
-            show("ERROR: LOBBY INITIALIZATION FAILED");
+            alert(message);
 
         }
 
-    } catch (error) {
 
         show(
-            "ERROR: " +
-            error.message
+            "STEP 1: APP STARTED"
         );
 
-    }
 
-});
+        /* -----------------------------------------
+           CHECK SUPABASE
+           ----------------------------------------- */
+
+        if (
+            typeof supabase ===
+            "undefined"
+        ) {
+
+            show(
+                "ERROR: SUPABASE NOT LOADED"
+            );
+
+            return;
+        }
+
+
+        show(
+            "STEP 2: SUPABASE LOADED"
+        );
+
+
+        /* -----------------------------------------
+           CHECK USER JS
+           ----------------------------------------- */
+
+        if (
+            typeof initializeUser !==
+            "function"
+        ) {
+
+            show(
+                "ERROR: USER JS NOT LOADED"
+            );
+
+            return;
+        }
+
+
+        show(
+            "STEP 3: USER JS LOADED"
+        );
+
+
+        /* -----------------------------------------
+           CHECK LOBBY JS
+           ----------------------------------------- */
+
+        if (
+            typeof initializeLobby !==
+            "function"
+        ) {
+
+            show(
+                "ERROR: LOBBY JS NOT LOADED"
+            );
+
+            return;
+        }
+
+
+        show(
+            "STEP 4: LOBBY JS LOADED"
+        );
+
+
+        /* -----------------------------------------
+           START LOBBY
+           ----------------------------------------- */
+
+        try {
+
+            const result =
+                await initializeLobby();
+
+
+            if (result) {
+
+                show(
+                    "STEP 5: LOBBY INITIALIZED"
+                );
+
+            } else {
+
+                show(
+                    "ERROR: LOBBY INITIALIZATION FAILED"
+                );
+
+            }
+
+        }
+
+        catch (error) {
+
+            show(
+                "ERROR: " +
+                (
+                    error &&
+                    error.message
+                        ? error.message
+                        : String(error)
+                )
+            );
+
+        }
+
+    }
+);
+
 </script>
+
 
 </body>
 
