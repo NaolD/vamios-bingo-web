@@ -1,5 +1,5 @@
 // ==========================================
-// VAMIOS BINGO V1
+// VAMIOS BINGO
 // USER MANAGEMENT
 // ==========================================
 
@@ -13,59 +13,87 @@ let currentUser = null;
 function getTelegramUser() {
 
     if (
-        window.Telegram &&
-        window.Telegram.WebApp &&
-        window.Telegram.WebApp.initDataUnsafe &&
-        window.Telegram.WebApp.initDataUnsafe.user
+        !window.Telegram ||
+        !window.Telegram.WebApp
     ) {
-
-        return window.Telegram.WebApp.initDataUnsafe.user;
-
+        return null;
     }
 
-    return null;
+    const tgUser =
+        window.Telegram.WebApp
+            .initDataUnsafe
+            ?.user;
+
+    if (!tgUser) {
+        return null;
+    }
+
+    return tgUser;
 }
 
 
 // ==========================================
-// LOAD / CREATE USER
+// INITIALIZE USER
 // ==========================================
 
-async function loadCurrentUser() {
+async function initializeUser() {
 
-    const telegramUser = getTelegramUser();
+    console.log(
+        "INITIALIZING USER"
+    );
+
+
+    const telegramUser =
+        getTelegramUser();
+
 
     if (!telegramUser) {
 
-        console.error("TELEGRAM USER NOT FOUND");
+        console.error(
+            "TELEGRAM USER NOT FOUND"
+        );
 
         return null;
     }
 
 
     console.log(
-        "TELEGRAM USER:",
+        "TELEGRAM USER FOUND:",
         telegramUser
     );
 
 
     // --------------------------------------
-    // Find existing user
+    // Look for existing user
     // --------------------------------------
 
-    const { data: existingUser, error } =
+    const {
+        data: existingUser,
+        error: findError
+    } =
         await supabase
             .from("users")
             .select("*")
-            .eq("telegram_id", telegramUser.id)
+            .eq(
+                "telegram_id",
+                String(telegramUser.id)
+            )
             .maybeSingle();
 
 
-    if (error) {
+    if (findError) {
 
         console.error(
             "USER LOOKUP ERROR:",
-            error
+            findError
+        );
+
+        alert(
+            "USER LOOKUP ERROR:\n\n" +
+            (
+                findError.message ||
+                JSON.stringify(findError)
+            )
         );
 
         return null;
@@ -78,16 +106,13 @@ async function loadCurrentUser() {
 
     if (existingUser) {
 
-        currentUser = existingUser;
-
         console.log(
             "EXISTING USER:",
-            currentUser
+            existingUser
         );
 
-        await ensureWallet(
-            currentUser.id
-        );
+        currentUser =
+            existingUser;
 
         return currentUser;
     }
@@ -97,23 +122,42 @@ async function loadCurrentUser() {
     // Create new user
     // --------------------------------------
 
-    const { data: newUser, error: createError } =
+    const newUser = {
+
+        telegram_id:
+            String(telegramUser.id),
+
+        username:
+            telegramUser.username ||
+            null,
+
+        full_name:
+            [
+                telegramUser.first_name,
+                telegramUser.last_name
+            ]
+                .filter(Boolean)
+                .join(" "),
+
+        phone:
+            null
+
+    };
+
+
+    console.log(
+        "CREATING USER:",
+        newUser
+    );
+
+
+    const {
+        data: createdUser,
+        error: createError
+    } =
         await supabase
             .from("users")
-            .insert({
-
-                telegram_id: telegramUser.id,
-
-                username:
-                    telegramUser.username || null,
-
-                first_name:
-                    telegramUser.first_name || null,
-
-                last_name:
-                    telegramUser.last_name || null
-
-            })
+            .insert(newUser)
             .select()
             .single();
 
@@ -121,95 +165,34 @@ async function loadCurrentUser() {
     if (createError) {
 
         console.error(
-            "USER CREATE ERROR:",
+            "USER CREATION ERROR:",
             createError
+        );
+
+        alert(
+            "USER CREATION ERROR:\n\n" +
+            (
+                createError.message ||
+                JSON.stringify(createError)
+            )
         );
 
         return null;
     }
 
 
-    currentUser = newUser;
+    currentUser =
+        createdUser;
 
 
     console.log(
-        "NEW USER CREATED:",
+        "USER CREATED:",
         currentUser
     );
 
 
-    await ensureWallet(
-        currentUser.id
-    );
-
-
     return currentUser;
-}
 
-
-// ==========================================
-// ENSURE WALLET EXISTS
-// ==========================================
-
-async function ensureWallet(userId) {
-
-    const { data: wallet, error } =
-        await supabase
-            .from("wallets")
-            .select("*")
-            .eq("user_id", userId)
-            .maybeSingle();
-
-
-    if (error) {
-
-        console.error(
-            "WALLET LOOKUP ERROR:",
-            error
-        );
-
-        return null;
-    }
-
-
-    if (wallet) {
-
-        return wallet;
-    }
-
-
-    const { data: newWallet, error: createError } =
-        await supabase
-            .from("wallets")
-            .insert({
-
-                user_id: userId,
-
-                balance: 0
-
-            })
-            .select()
-            .single();
-
-
-    if (createError) {
-
-        console.error(
-            "WALLET CREATE ERROR:",
-            createError
-        );
-
-        return null;
-    }
-
-
-    console.log(
-        "WALLET CREATED:",
-        newWallet
-    );
-
-
-    return newWallet;
 }
 
 
@@ -220,6 +203,7 @@ async function ensureWallet(userId) {
 function getCurrentUser() {
 
     return currentUser;
+
 }
 
 
@@ -229,84 +213,15 @@ function getCurrentUser() {
 
 function getCurrentUserId() {
 
-    return currentUser
-        ? currentUser.id
-        : null;
-}
-
-
-// ==========================================
-// GET WALLET
-// ==========================================
-
-async function getCurrentWallet() {
-
-    const userId =
-        getCurrentUserId();
-
-
-    if (!userId) {
-
+    if (!currentUser) {
         return null;
     }
 
+    return currentUser.id;
 
-    const { data: wallet, error } =
-        await supabase
-            .from("wallets")
-            .select("*")
-            .eq("user_id", userId)
-            .single();
-
-
-    if (error) {
-
-        console.error(
-            "GET WALLET ERROR:",
-            error
-        );
-
-        return null;
-    }
-
-
-    return wallet;
 }
 
 
-// ==========================================
-// INITIALIZE USER SYSTEM
-// ==========================================
-
-async function initializeUser() {
-
-    console.log(
-        "INITIALIZING USER..."
-    );
-
-
-    const user =
-        await loadCurrentUser();
-
-
-    if (!user) {
-
-        console.error(
-            "USER INITIALIZATION FAILED"
-        );
-
-        return null;
-    }
-
-
-    console.log(
-        "USER INITIALIZED:",
-        user.id
-    );
-
-
-    return user;
-}
-
-
-console.log("USER JS LOADED");
+console.log(
+    "USER JS LOADED"
+);
