@@ -9,21 +9,24 @@ const SUPABASE_URL =
 const SUPABASE_ANON_KEY =
     "sb_publishable_d2mVCrvtCDs-JA6ShYkYf1Q_FcJ26AhB";
 
-// The Supabase CDN creates window.supabase.
-// Save its createClient function first.
-const createSupabaseClient =
-    window.supabase.createClient;
+// The CDN already provides window.supabase.
+// Create the actual Supabase client without
+// declaring another global variable named supabase.
 
-// Replace the global Supabase namespace
-// with the actual Supabase client.
-// All VAMIOS files use:
-//     supabase.from(...)
-window.supabase =
-    createSupabaseClient(
+window.vamiosSupabase =
+    window.supabase.createClient(
         SUPABASE_URL,
         SUPABASE_ANON_KEY
     );
 
+// Make all existing VAMIOS files use:
+// supabase.from(...)
+// supabase.auth(...)
+// etc.
+
+window.supabase =
+    window.vamiosSupabase;
+
 console.log(
-    "SUPABASE CLIENT READY"
+    "VAMIOS SUPABASE CLIENT READY"
 );
