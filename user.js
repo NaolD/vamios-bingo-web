@@ -136,9 +136,6 @@ async function initializeUser() {
             .filter(Boolean)
             .join(" ") ||
         "Player",
-
-    phone:
-        null
 };
     console.log(
         "CREATING USER:",
