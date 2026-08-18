@@ -1,5 +1,5 @@
 // ==========================================
-// VAMIOS BINGO V1
+// VAMIOS BINGO
 // LOBBY
 // ==========================================
 
@@ -14,10 +14,14 @@ async function initializeLobby() {
 
     console.log("INITIALIZING LOBBY");
 
-    setConnectionStatus("Connecting...", false);
+    setConnectionStatus(
+        "Connecting...",
+        false
+    );
+
 
     // --------------------------------------
-    // Initialize Telegram
+    // Telegram
     // --------------------------------------
 
     if (
@@ -28,7 +32,6 @@ async function initializeLobby() {
         try {
 
             window.Telegram.WebApp.ready();
-
             window.Telegram.WebApp.expand();
 
         } catch (error) {
@@ -40,6 +43,14 @@ async function initializeLobby() {
 
         }
 
+    } else {
+
+        alert(
+            "ERROR: Telegram WebApp not available"
+        );
+
+        return false;
+
     }
 
 
@@ -47,92 +58,157 @@ async function initializeLobby() {
     // Initialize user
     // --------------------------------------
 
-    const user =
-        await initializeUser();
+    try {
+
+        const telegramUser =
+            getTelegramUser();
+
+        if (!telegramUser) {
+
+            alert(
+                "ERROR: Telegram user not detected.\n\nOpen VAMIOS Bingo using the Telegram bot."
+            );
+
+            return false;
+        }
 
 
-    if (!user) {
-
-        setConnectionStatus(
-            "Telegram not detected",
-            false
-        );
-
-        return false;
-    }
-
-
-    // --------------------------------------
-    // Load wallet
-    // --------------------------------------
-
-    await initializeWallet();
-
-
-    // --------------------------------------
-    // Display user
-    // --------------------------------------
-
-    const playerName =
-        document.getElementById(
-            "playerName"
+        console.log(
+            "TELEGRAM USER:",
+            telegramUser
         );
 
 
-    if (playerName) {
-
-        let name =
-            user.first_name ||
-            user.username ||
-            "Player";
+        const user =
+            await initializeUser();
 
 
-        if (
-            user.last_name
-        ) {
+        if (!user) {
 
-            name +=
-                " " +
-                user.last_name;
+            alert(
+                "ERROR: Telegram user was detected, but Supabase user initialization failed.\n\nCheck the users table or Supabase permissions."
+            );
+
+            return false;
+        }
+
+
+        // --------------------------------------
+        // Wallet
+        // --------------------------------------
+
+        try {
+
+            await initializeWallet();
+
+        } catch (error) {
+
+            console.error(
+                "WALLET ERROR:",
+                error
+            );
 
         }
 
 
-        playerName.textContent =
-            name;
+        // --------------------------------------
+        // Display user
+        // --------------------------------------
+
+        const playerName =
+            document.getElementById(
+                "playerName"
+            );
+
+
+        if (playerName) {
+
+            let name =
+                user.first_name ||
+                user.username ||
+                "Player";
+
+
+            if (user.last_name) {
+
+                name +=
+                    " " +
+                    user.last_name;
+
+            }
+
+
+            playerName.textContent =
+                name;
+
+        }
+
+
+        // --------------------------------------
+        // Connected
+        // --------------------------------------
+
+        setConnectionStatus(
+            "Connected",
+            true
+        );
+
+
+        // --------------------------------------
+        // Room statistics
+        // --------------------------------------
+
+        try {
+
+            await loadRoomStatistics();
+
+        } catch (error) {
+
+            console.error(
+                "ROOM STATISTICS ERROR:",
+                error
+            );
+
+        }
+
+
+        // --------------------------------------
+        // Fee buttons
+        // --------------------------------------
+
+        setupFeeButtons();
+
+
+        console.log(
+            "LOBBY READY"
+        );
+
+
+        return true;
+
     }
 
+    catch (error) {
 
-    // --------------------------------------
-    // Connection
-    // --------------------------------------
-
-    setConnectionStatus(
-        "Connected",
-        true
-    );
+        console.error(
+            "LOBBY INITIALIZATION ERROR:",
+            error
+        );
 
 
-    // --------------------------------------
-    // Load room statistics
-    // --------------------------------------
-
-    await loadRoomStatistics();
-
-
-    // --------------------------------------
-    // Setup fee buttons
-    // --------------------------------------
-
-    setupFeeButtons();
+        alert(
+            "LOBBY ERROR:\n\n" +
+            (
+                error.message ||
+                String(error)
+            )
+        );
 
 
-    console.log(
-        "LOBBY READY"
-    );
+        return false;
 
+    }
 
-    return true;
 }
 
 
@@ -155,7 +231,7 @@ function setupFeeButtons() {
 
 
     buttons.forEach(
-        (button) => {
+        button => {
 
             button.onclick =
                 async function () {
@@ -193,45 +269,42 @@ async function selectEntryFee(
 
 
     if (
-        ![10, 15, 25, 50].includes(
-            fee
-        )
-    ) {
-
-        console.error(
-            "INVALID ENTRY FEE:",
-            fee
-        );
-
-        return;
-    }
-
-
-    // --------------------------------------
-    // Check wallet
-    // --------------------------------------
-
-    if (
-        !hasEnoughBalance(
-            fee
-        )
+        ![10, 15, 25, 50]
+            .includes(fee)
     ) {
 
         alert(
-            "Insufficient balance."
+            "Invalid entry fee."
         );
 
         return;
+
+    }
+
+
+    if (
+        typeof hasEnoughBalance ===
+        "function"
+    ) {
+
+        if (
+            !hasEnoughBalance(fee)
+        ) {
+
+            alert(
+                "Insufficient balance."
+            );
+
+            return;
+
+        }
+
     }
 
 
     selectedEntryFee =
         fee;
 
-
-    // --------------------------------------
-    // Open board selection
-    // --------------------------------------
 
     if (
         typeof initializeBoards ===
@@ -244,15 +317,29 @@ async function selectEntryFee(
 
     } else {
 
-        console.error(
-            "initializeBoards() NOT FOUND"
+        alert(
+            "ERROR: boards.js is not loaded."
         );
 
         return;
+
     }
 
 
-    showBoardScreen();
+    if (
+        typeof showBoardScreen ===
+        "function"
+    ) {
+
+        showBoardScreen();
+
+    } else {
+
+        alert(
+            "ERROR: showBoardScreen() not found."
+        );
+
+    }
 
 }
 
@@ -286,12 +373,9 @@ async function loadRoomStatistics() {
         );
 
         return;
+
     }
 
-
-    // --------------------------------------
-    // Total live players
-    // --------------------------------------
 
     const livePlayers =
         document.getElementById(
@@ -301,18 +385,11 @@ async function loadRoomStatistics() {
 
     if (livePlayers) {
 
-        // Player counts will be loaded
-        // properly once games exist.
-
         livePlayers.textContent =
             "0";
 
     }
 
-
-    // --------------------------------------
-    // Jackpot
-    // --------------------------------------
 
     const jackpot =
         document.getElementById(
@@ -337,7 +414,7 @@ async function loadRoomStatistics() {
 
 
 // ==========================================
-// GET SELECTED ENTRY FEE
+// GET SELECTED FEE
 // ==========================================
 
 function getSelectedEntryFee() {
