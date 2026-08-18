@@ -693,18 +693,36 @@ document.addEventListener(
 
             if (result) {
 
-                show(
-                    "STEP 5: LOBBY INITIALIZED"
-                );
+    show(
+        "STEP 5: LOBBY INITIALIZED"
+    );
 
-            } else {
+} else {
 
-                show(
-                    "ERROR: LOBBY INITIALIZATION FAILED"
-                );
+    const telegramUser =
+        (
+            window.Telegram &&
+            window.Telegram.WebApp &&
+            window.Telegram.WebApp.initDataUnsafe
+        )
+            ? window.Telegram.WebApp.initDataUnsafe.user
+            : null;
 
-            }
+    if (!telegramUser) {
 
+        show(
+            "ERROR: TELEGRAM USER NOT AVAILABLE"
+        );
+
+    } else {
+
+        show(
+            "ERROR: TELEGRAM USER FOUND, BUT USER INITIALIZATION FAILED"
+        );
+
+    }
+
+}
         }
 
         catch (error) {
