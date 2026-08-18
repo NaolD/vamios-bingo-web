@@ -124,27 +124,22 @@ async function initializeUser() {
 
     const newUser = {
 
-        telegram_id:
-            String(telegramUser.id),
+    telegram_id:
+        String(telegramUser.id),
 
-        username:
-            telegramUser.username ||
-            null,
+    username:
+        telegramUser.username ||
+        [
+            telegramUser.first_name,
+            telegramUser.last_name
+        ]
+            .filter(Boolean)
+            .join(" ") ||
+        "Player",
 
-        full_name:
-            [
-                telegramUser.first_name,
-                telegramUser.last_name
-            ]
-                .filter(Boolean)
-                .join(" "),
-
-        phone:
-            null
-
-    };
-
-
+    phone:
+        null
+};
     console.log(
         "CREATING USER:",
         newUser
