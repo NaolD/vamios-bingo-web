@@ -1,7 +1,8 @@
 // ===============================
 // VAMIOS BINGO GAME
 // ===============================
-// Selected board + realtime calling
+// Selected player board
+// Realtime synchronized calling
 // Automatic call every 5 seconds
 // ===============================
 
@@ -49,18 +50,15 @@ function loadSelectedBoard() {
         return false;
     }
 
-
     container.innerHTML = "";
 
     playerCard = [];
 
 
-    // Board saved by boards.js
-    let savedBoard =
+    const savedBoard =
         localStorage.getItem(
             "selectedBoard"
         );
-
 
     if (!savedBoard) {
 
@@ -72,9 +70,11 @@ function loadSelectedBoard() {
     }
 
 
+    let board;
+
     try {
 
-        savedBoard =
+        board =
             JSON.parse(savedBoard);
 
     } catch (error) {
@@ -89,12 +89,13 @@ function loadSelectedBoard() {
 
 
     if (
-        !Array.isArray(savedBoard) ||
-        savedBoard.length !== 5
+        !Array.isArray(board) ||
+        board.length !== 5
     ) {
 
         console.error(
-            "INVALID BOARD FORMAT"
+            "INVALID BOARD FORMAT:",
+            board
         );
 
         return false;
@@ -102,10 +103,10 @@ function loadSelectedBoard() {
 
 
     // ===============================
-    // DRAW BOARD
+    // DRAW PLAYER BOARD
     // ===============================
 
-    savedBoard.forEach(
+    board.forEach(
         (row, rowIndex) => {
 
             row.forEach(
@@ -181,15 +182,22 @@ function loadSelectedBoard() {
 
 function showCurrentNumber(number) {
 
-    const el =
+    const element =
         document.getElementById(
             "calledNumber"
         );
 
-    if (!el) return;
+    if (!element) {
+
+        console.error(
+            "CALLED NUMBER ELEMENT NOT FOUND"
+        );
+
+        return;
+    }
 
 
-    el.textContent =
+    element.textContent =
         `${bingoLetter(number)} ${number}`;
 }
 
@@ -207,7 +215,7 @@ function updateCalledNumbers(numbers) {
 
 
     // ===============================
-    // MARK BOARD
+    // MARK PLAYER BOARD
     // ===============================
 
     calledNumbers.forEach(
@@ -231,7 +239,7 @@ function updateCalledNumbers(numbers) {
 
 
     // ===============================
-    // HISTORY
+    // CALLED NUMBER HISTORY
     // ===============================
 
     const history =
@@ -239,7 +247,9 @@ function updateCalledNumbers(numbers) {
             "calledHistory"
         );
 
-    if (!history) return;
+    if (!history) {
+        return;
+    }
 
 
     history.innerHTML = "";
@@ -289,11 +299,9 @@ async function subscribeGame(gameId) {
 
     gameChannel =
         supabase
-
             .channel(
                 `game-${gameId}`
             )
-
             .on(
                 "postgres_changes",
                 {
@@ -303,7 +311,6 @@ async function subscribeGame(gameId) {
                     filter:
                         `id=eq.${gameId}`
                 },
-
                 payload => {
 
                     console.log(
@@ -332,25 +339,22 @@ async function subscribeGame(gameId) {
                     );
 
                 }
-
             )
-
             .subscribe(
                 status => {
 
                     console.log(
-                        "GAME CHANNEL:",
+                        "GAME CHANNEL STATUS:",
                         status
                     );
 
                 }
             );
-
 }
 
 
 // ===============================
-// NUMBER CALLER
+// START NUMBER CALLING
 // ===============================
 
 async function startCalling(gameId) {
@@ -372,7 +376,7 @@ async function startCalling(gameId) {
 
 
     // ===============================
-    // LOAD EXISTING GAME
+    // LOAD CURRENT GAME
     // ===============================
 
     const {
@@ -482,11 +486,10 @@ async function startCalling(gameId) {
             ];
 
 
-        called =
-            [
-                ...called,
-                next
-            ];
+        called = [
+            ...called,
+            next
+        ];
 
 
         console.log(
@@ -530,7 +533,7 @@ async function startCalling(gameId) {
         }
 
 
-        // Update this player immediately
+        // Update this screen immediately
         showCurrentNumber(
             next
         );
@@ -596,7 +599,7 @@ async function initializeGame() {
 
 
     // ===============================
-    // LOAD PLAYER BOARD
+    // LOAD SELECTED BOARD
     // ===============================
 
     const boardLoaded =
@@ -609,6 +612,7 @@ async function initializeGame() {
             "PLAYER BOARD COULD NOT BE LOADED"
         );
 
+        return;
     }
 
 
@@ -622,17 +626,13 @@ async function initializeGame() {
 
 
     // ===============================
-    // START CALLING
+    // START CALLER
     // ===============================
-    //
-    // For now the player who created
-    // the game becomes the caller.
-    //
 
-    let isHost =
+    const isHost =
         localStorage.getItem(
             "isHost"
-        );
+        ) === "true";
 
 
     console.log(
@@ -641,18 +641,10 @@ async function initializeGame() {
     );
 
 
-    if (
-        isHost === "true"
-    ) {
+    if (isHost) {
 
         await startCalling(
             gameId
-        );
-
-    } else {
-
-        console.log(
-            "PLAYER IS NOT HOST"
         );
 
     }
