@@ -393,16 +393,12 @@ function setupBoardStartButton() {
             "startGameBtn"
         );
 
-
     if (!button) {
-
         console.error(
             "START GAME BUTTON NOT FOUND"
         );
-
         return;
     }
-
 
     button.onclick =
         async function () {
@@ -411,45 +407,152 @@ function setupBoardStartButton() {
                 !selectedBoardNumber ||
                 !selectedBoard
             ) {
-
                 alert(
                     "Please select a board first."
                 );
-
                 return;
             }
 
+            const fee =
+                boardsEntryFee;
 
-            console.log(
-                "STARTING GAME WITH BOARD:",
-                selectedBoardNumber
-            );
+            button.disabled = true;
+            button.textContent = "JOINING...";
 
+            try {
 
-            // For now, we only move to
-            // the waiting room.
-            //
-            // Real game joining/payment
-            // will be connected next.
+                // -------------------------
+                // Load room
+                // -------------------------
 
-            if (
-                typeof showWaitingScreen ===
-                "function"
-            ) {
+                const {
+                    data: room,
+                    error: roomError
+                } =
+                    await supabase
+                        .from("rooms")
+                        .select("*")
+                        .eq("entry_fee", fee)
+                        .single();
 
-                await showWaitingScreen();
+                if (roomError || !room) {
+                    throw new Error(
+                        roomError?.message ||
+                        "Room not found"
+                    );
+                }
 
-            } else {
+                // -------------------------
+                // Set fresh 60-second timer
+                // -------------------------
+
+                const nextGameTime =
+                    new Date(
+                        Date.now() + 60000
+                    ).toISOString();
+
+                const {
+                    data: updatedRoom,
+                    error: updateError
+                } =
+                    await supabase
+                        .from("rooms")
+                        .update({
+                            next_game_time:
+                                nextGameTime
+                        })
+                        .eq("id", room.id)
+                        .select()
+                        .single();
+
+                if (updateError) {
+                    throw updateError;
+                }
+
+                // -------------------------
+                // Create game
+                // -------------------------
+
+                const {
+                    data: game,
+                    error: gameError
+                } =
+                    await supabase
+                        .from("games")
+                        .insert({
+                            room_id: room.id,
+                            status: "waiting"
+                        })
+                        .select()
+                        .single();
+
+                if (gameError) {
+                    throw gameError;
+                }
+
+                // -------------------------
+                // Add player
+                // -------------------------
+
+                const userId =
+                    getCurrentUserId();
+
+                const {
+                    error: playerError
+                } =
+                    await supabase
+                        .from("game_players")
+                        .insert({
+                            game_id: game.id,
+                            user_id: userId,
+                            board_number:
+                                selectedBoardNumber,
+                            board:
+                                selectedBoard
+                        });
+
+                if (playerError) {
+                    throw playerError;
+                }
+
+                // -------------------------
+                // Open waiting room
+                // -------------------------
+
+                showWaitingScreen();
+
+                await startWaitingRoom(
+                    room.id,
+                    game.id
+                );
+
+            } catch (error) {
+
+                console.error(
+                    "JOIN GAME ERROR:",
+                    error
+                );
 
                 alert(
-                    "Waiting room is not ready yet."
+                    "JOIN GAME ERROR:\n\n" +
+                    (
+                        error.message ||
+                        String(error)
+                    )
                 );
+
+            } finally {
+
+                button.disabled = false;
+                button.textContent =
+                    "START GAME";
 
             }
 
         };
 
 }
+
 
 
 // ==========================================
