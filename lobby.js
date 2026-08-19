@@ -282,25 +282,12 @@ async function selectEntryFee(
     }
 
 
-    if (
-        typeof hasEnoughBalance ===
-        "function"
-    ) {
-
-        if (
-            !hasEnoughBalance(fee)
-        ) {
-
-            alert(
-                "Insufficient balance."
-            );
-
-            return;
-
-        }
-
-    }
-
+    // TEMPORARY TEST MODE
+// Balance/payment will be enforced later.
+console.log(
+    "TEST MODE: allowing entry fee",
+    fee
+);
 
     selectedEntryFee =
         fee;
