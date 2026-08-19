@@ -270,97 +270,150 @@ async function loadWaitingPlayers(gameId) {
 // SHARED COUNTDOWN
 // ===============================
 
-function startSharedCountdown(
-  nextGameTime,
-  roomId,
-  gameId
-) {
+// ===============================
+// SHARED COUNTDOWN
+// ===============================
 
-  if (countdownTimer) {
-
-    clearInterval(
-      countdownTimer
-    );
-
-    countdownTimer = null;
-  }
-
-
-  const countdown =
-    document.getElementById(
-      "countdown"
-    );
-
-
-  function updateCountdown() {
-
-    const end =
-      new Date(
-        nextGameTime
-      ).getTime();
-
-    const now =
-      Date.now();
-
-    const difference =
-      end - now;
-
-
-    const seconds =
-      Math.max(
-        0,
-        Math.ceil(
-          difference / 1000
-        )
-      );
-
-
-    if (countdown) {
-
-      countdown.textContent =
-        seconds;
-
-    }
-
+function startSharedCountdown(nextGameTime) {
 
     console.log(
-      "WAITING COUNTDOWN:",
-      seconds
+        "STARTING SHARED COUNTDOWN:",
+        nextGameTime
     );
 
+    if (countdownTimer) {
+        clearInterval(countdownTimer);
+        countdownTimer = null;
+    }
 
-    // ===============================
-    // COUNTDOWN FINISHED
-    // ===============================
+    const countdown =
+        document.getElementById("countdown");
 
-    if (difference <= 0) {
+    if (!countdown) {
+        console.error(
+            "COUNTDOWN ELEMENT NOT FOUND"
+        );
+        return;
+    }
 
-      clearInterval(
-        countdownTimer
-      );
+    // Convert Supabase timestamp safely
+    let endTime;
 
-      countdownTimer =
-        null;
+    if (typeof nextGameTime === "string") {
 
+        // Supabase may return:
+        // 2026-08-19T18:30:00+00:00
+        // or
+        // 2026-08-19 18:30:00+00
 
-      enterGame(
-        roomId,
-        gameId
-      );
+        endTime =
+            new Date(
+                nextGameTime.replace(
+                    " ",
+                    "T"
+                )
+            ).getTime();
+
+    } else {
+
+        endTime =
+            new Date(
+                nextGameTime
+            ).getTime();
 
     }
 
-  }
+    if (!Number.isFinite(endTime)) {
+
+        console.error(
+            "INVALID NEXT GAME TIME:",
+            nextGameTime
+        );
+
+        countdown.textContent = "60";
+
+        return;
+    }
 
 
-  updateCountdown();
+    function updateCountdown() {
+
+        const now =
+            Date.now();
+
+        const remaining =
+            Math.max(
+                0,
+                Math.ceil(
+                    (endTime - now) / 1000
+                )
+            );
+
+        countdown.textContent =
+            remaining;
 
 
-  countdownTimer =
-    setInterval(
-      updateCountdown,
-      1000
-    );
+        console.log(
+            "COUNTDOWN:",
+            remaining
+        );
+
+
+        if (remaining <= 0) {
+
+            clearInterval(
+                countdownTimer
+            );
+
+            countdownTimer = null;
+
+            console.log(
+                "COUNTDOWN FINISHED"
+            );
+
+
+            document
+                .getElementById(
+                    "waitingScreen"
+                )
+                ?.classList.add(
+                    "hidden"
+                );
+
+
+            document
+                .getElementById(
+                    "gameScreen"
+                )
+                ?.classList.remove(
+                    "hidden"
+                );
+
+
+            if (
+                typeof initializeGame ===
+                "function"
+            ) {
+
+                initializeGame();
+
+            }
+
+        }
+
+    }
+
+
+    // Run immediately
+    updateCountdown();
+
+
+    // Update every second
+    countdownTimer =
+        setInterval(
+            updateCountdown,
+            1000
+        );
 
 }
 
