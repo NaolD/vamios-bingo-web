@@ -14,44 +14,80 @@ let selectedBoard = null;
 
 async function initializeBoards(fee) {
 
-    console.log("INITIALIZING BOARDS:", fee);
+    console.log(
+        "INITIALIZING BOARDS:",
+        fee
+    );
 
-    boardsEntryFee = Number(fee);
-    selectedBoardNumber = null;
-    selectedBoard = null;
+    boardsEntryFee =
+        Number(fee);
+
+    selectedBoardNumber =
+        null;
+
+    selectedBoard =
+        null;
+
 
     const selectedFee =
-        document.getElementById("selectedFee");
+        document.getElementById(
+            "selectedFee"
+        );
 
     if (selectedFee) {
+
         selectedFee.textContent =
             boardsEntryFee + " ETB";
+
     }
+
 
     const selectedNumber =
-        document.getElementById("selectedBoardNumber");
+        document.getElementById(
+            "selectedBoardNumber"
+        );
 
     if (selectedNumber) {
-        selectedNumber.textContent = "None";
+
+        selectedNumber.textContent =
+            "None";
+
     }
+
 
     const preview =
-        document.getElementById("boardPreview");
+        document.getElementById(
+            "boardPreview"
+        );
 
     if (preview) {
-        preview.classList.add("hidden");
+
+        preview.classList.add(
+            "hidden"
+        );
+
     }
+
 
     const startButton =
-        document.getElementById("startGameBtn");
+        document.getElementById(
+            "startGameBtn"
+        );
 
     if (startButton) {
-        startButton.disabled = true;
+
+        startButton.disabled =
+            true;
+
     }
+
 
     createBoardNumbers();
 
-    console.log("BOARDS READY");
+
+    console.log(
+        "BOARDS READY"
+    );
 }
 
 
@@ -75,15 +111,23 @@ function createBoardNumbers() {
         return;
     }
 
+
     container.innerHTML = "";
 
 
-    for (let number = 1; number <= 100; number++) {
+    for (
+        let number = 1;
+        number <= 100;
+        number++
+    ) {
 
         const button =
-            document.createElement("button");
+            document.createElement(
+                "button"
+            );
 
-        button.type = "button";
+        button.type =
+            "button";
 
         button.className =
             "board-number";
@@ -94,16 +138,23 @@ function createBoardNumbers() {
         button.dataset.number =
             number;
 
+
         button.addEventListener(
             "click",
             function () {
 
-                selectBoard(number);
+                selectBoard(
+                    number
+                );
 
             }
         );
 
-        container.appendChild(button);
+
+        container.appendChild(
+            button
+        );
+
     }
 
 }
@@ -118,27 +169,30 @@ async function selectBoard(number) {
     selectedBoardNumber =
         Number(number);
 
+
     console.log(
         "SELECTED BOARD:",
         selectedBoardNumber
     );
 
 
-    // Highlight selected number
-
     document
         .querySelectorAll(
             ".board-number"
         )
-        .forEach(button => {
+        .forEach(
+            button => {
 
-            button.classList.toggle(
-                "selected",
-                Number(button.dataset.number) ===
-                selectedBoardNumber
-            );
+                button.classList.toggle(
+                    "selected",
+                    Number(
+                        button.dataset.number
+                    ) ===
+                    selectedBoardNumber
+                );
 
-        });
+            }
+        );
 
 
     const selectedNumber =
@@ -154,8 +208,6 @@ async function selectBoard(number) {
     }
 
 
-    // Create preview
-
     selectedBoard =
         generateBoard(
             selectedBoardNumber
@@ -166,8 +218,6 @@ async function selectBoard(number) {
         selectedBoard
     );
 
-
-    // Enable START GAME
 
     const startButton =
         document.getElementById(
@@ -191,6 +241,7 @@ async function selectBoard(number) {
 function generateBoard(seed) {
 
     const board = [];
+
 
     const ranges = [
 
@@ -227,7 +278,9 @@ function generateBoard(seed) {
         ) {
 
             if (!board[row]) {
+
                 board[row] = [];
+
             }
 
 
@@ -252,6 +305,7 @@ function generateBoard(seed) {
 
 
     return board;
+
 }
 
 
@@ -278,8 +332,6 @@ function createShuffledNumbers(
     }
 
 
-    // Fisher-Yates shuffle
-
     for (
         let i = numbers.length - 1;
         i > 0;
@@ -288,7 +340,8 @@ function createShuffledNumbers(
 
         const j =
             Math.floor(
-                Math.random() * (i + 1)
+                Math.random() *
+                (i + 1)
             );
 
 
@@ -305,6 +358,7 @@ function createShuffledNumbers(
 
 
     return numbers;
+
 }
 
 
@@ -312,7 +366,9 @@ function createShuffledNumbers(
 // DISPLAY BOARD PREVIEW
 // ==========================================
 
-function displayBoardPreview(board) {
+function displayBoardPreview(
+    board
+) {
 
     const preview =
         document.getElementById(
@@ -332,47 +388,57 @@ function displayBoardPreview(board) {
         );
 
         return;
+
     }
 
 
     grid.innerHTML = "";
 
 
-    board.forEach(row => {
+    board.forEach(
+        row => {
 
-        row.forEach(value => {
+            row.forEach(
+                value => {
 
-            const cell =
-                document.createElement(
-                    "div"
-                );
-
-            cell.className =
-                "bingo-cell";
-
-
-            if (value === "FREE") {
-
-                cell.classList.add(
-                    "free-cell"
-                );
-
-                cell.textContent =
-                    "FREE";
-
-            } else {
-
-                cell.textContent =
-                    value;
-
-            }
+                    const cell =
+                        document.createElement(
+                            "div"
+                        );
 
 
-            grid.appendChild(cell);
+                    cell.className =
+                        "bingo-cell";
 
-        });
 
-    });
+                    if (
+                        value === "FREE"
+                    ) {
+
+                        cell.classList.add(
+                            "free-cell"
+                        );
+
+                        cell.textContent =
+                            "FREE";
+
+                    } else {
+
+                        cell.textContent =
+                            value;
+
+                    }
+
+
+                    grid.appendChild(
+                        cell
+                    );
+
+                }
+            );
+
+        }
+    );
 
 
     preview.classList.remove(
@@ -393,12 +459,17 @@ function setupBoardStartButton() {
             "startGameBtn"
         );
 
+
     if (!button) {
+
         console.error(
             "START GAME BUTTON NOT FOUND"
         );
+
         return;
+
     }
+
 
     button.onclick =
         async function () {
@@ -407,23 +478,32 @@ function setupBoardStartButton() {
                 !selectedBoardNumber ||
                 !selectedBoard
             ) {
+
                 alert(
                     "Please select a board first."
                 );
+
                 return;
+
             }
+
 
             const fee =
                 boardsEntryFee;
 
-            button.disabled = true;
-            button.textContent = "JOINING...";
+
+            button.disabled =
+                true;
+
+            button.textContent =
+                "JOINING...";
+
 
             try {
 
-                // -------------------------
-                // Load room
-                // -------------------------
+                // =========================
+                // LOAD ROOM
+                // =========================
 
                 const {
                     data: room,
@@ -432,46 +512,64 @@ function setupBoardStartButton() {
                     await supabase
                         .from("rooms")
                         .select("*")
-                        .eq("entry_fee", fee)
+                        .eq(
+                            "entry_fee",
+                            fee
+                        )
                         .single();
 
-                if (roomError || !room) {
+
+                if (
+                    roomError ||
+                    !room
+                ) {
+
                     throw new Error(
                         roomError?.message ||
                         "Room not found"
                     );
+
                 }
 
-                // -------------------------
-                // Set fresh 60-second timer
-                // -------------------------
+
+                // =========================
+                // SET 60 SECOND TIMER
+                // =========================
 
                 const nextGameTime =
                     new Date(
-                        Date.now() + 60000
+                        Date.now() +
+                        60000
                     ).toISOString();
 
+
                 const {
-                    data: updatedRoom,
                     error: updateError
                 } =
                     await supabase
                         .from("rooms")
                         .update({
+
                             next_game_time:
                                 nextGameTime
+
                         })
-                        .eq("id", room.id)
-                        .select()
-                        .single();
+                        .eq(
+                            "id",
+                            room.id
+                        );
+
 
                 if (updateError) {
+
                     throw updateError;
+
                 }
 
-                // -------------------------
-                // Create game
-                // -------------------------
+
+                // =========================
+                // CREATE GAME
+                // =========================
 
                 const {
                     data: game,
@@ -480,51 +578,136 @@ function setupBoardStartButton() {
                     await supabase
                         .from("games")
                         .insert({
-                            room_id: room.id,
-                            status: "waiting"
+
+                            room_id:
+                                room.id,
+
+                            status:
+                                "waiting"
+
                         })
                         .select()
                         .single();
 
+
                 if (gameError) {
+
                     throw gameError;
+
                 }
 
-                // -------------------------
-                // Add player
-                // -------------------------
+
+                // =========================
+                // GET CURRENT USER
+                // =========================
 
                 const userId =
                     getCurrentUserId();
+
+
+                if (!userId) {
+
+                    throw new Error(
+                        "Current user not found"
+                    );
+
+                }
+
+
+                // =========================
+                // ADD PLAYER
+                // =========================
 
                 const {
                     error: playerError
                 } =
                     await supabase
-                        .from("game_players")
+                        .from(
+                            "game_players"
+                        )
                         .insert({
-                            game_id: game.id,
-                            user_id: userId,
+
+                            game_id:
+                                game.id,
+
+                            user_id:
+                                userId,
+
                             board_number:
                                 selectedBoardNumber,
+
                             board:
                                 selectedBoard
+
                         });
 
+
                 if (playerError) {
+
                     throw playerError;
+
                 }
 
-                // -------------------------
-                // Open waiting room
-                // -------------------------
+
+                // =========================
+                // SAVE GAME INFORMATION
+                // =========================
+
+                localStorage.setItem(
+                    "gameId",
+                    String(game.id)
+                );
+
+
+                localStorage.setItem(
+                    "selectedBoard",
+                    JSON.stringify(
+                        selectedBoard
+                    )
+                );
+
+
+                localStorage.setItem(
+                    "selectedBoardNumber",
+                    String(
+                        selectedBoardNumber
+                    )
+                );
+
+
+                // Player who creates
+                // the game is the host.
+
+                localStorage.setItem(
+                    "isHost",
+                    "true"
+                );
+
+
+                console.log(
+                    "GAME CREATED:",
+                    game.id
+                );
+
+
+                console.log(
+                    "BOARD SAVED:",
+                    selectedBoardNumber
+                );
+
+
+                // =========================
+                // OPEN WAITING ROOM
+                // =========================
 
                 showWaitingScreen();
+
 
                 await startWaitingRoom(
                     room.id,
                     game.id
                 );
+
 
             } catch (error) {
 
@@ -532,6 +715,7 @@ function setupBoardStartButton() {
                     "JOIN GAME ERROR:",
                     error
                 );
+
 
                 alert(
                     "JOIN GAME ERROR:\n\n" +
@@ -543,7 +727,9 @@ function setupBoardStartButton() {
 
             } finally {
 
-                button.disabled = false;
+                button.disabled =
+                    false;
+
                 button.textContent =
                     "START GAME";
 
@@ -552,7 +738,6 @@ function setupBoardStartButton() {
         };
 
 }
-
 
 
 // ==========================================
@@ -568,7 +753,9 @@ function setupBoardBackButton() {
 
 
     if (!button) {
+
         return;
+
     }
 
 

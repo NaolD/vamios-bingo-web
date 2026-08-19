@@ -1,13 +1,15 @@
 // ===============================
 // VAMIOS BINGO GAME
-// Realtime synchronized number calling
-// Call interval: 5 seconds
+// ===============================
+// Selected board + realtime calling
+// Automatic call every 5 seconds
 // ===============================
 
 const CALL_INTERVAL = 5000;
 
 let gameChannel = null;
 let callTimer = null;
+
 let calledNumbers = [];
 let playerCard = [];
 
@@ -17,77 +19,159 @@ let playerCard = [];
 // ===============================
 
 function bingoLetter(number) {
-  if (number <= 15) return 'B';
-  if (number <= 30) return 'I';
-  if (number <= 45) return 'N';
-  if (number <= 60) return 'G';
-  return 'O';
+
+    number = Number(number);
+
+    if (number <= 15) return "B";
+    if (number <= 30) return "I";
+    if (number <= 45) return "N";
+    if (number <= 60) return "G";
+
+    return "O";
 }
 
 
 // ===============================
-// CREATE PLAYER CARD
+// LOAD SELECTED BOARD
 // ===============================
 
-function createPlayerCard() {
+function loadSelectedBoard() {
 
-  const container =
-    document.getElementById('bingoCard');
+    const container =
+        document.getElementById("bingoCard");
 
-  if (!container) return;
+    if (!container) {
 
-  container.innerHTML = '';
-  playerCard = [];
+        console.error(
+            "BINGO CARD ELEMENT NOT FOUND"
+        );
 
-  const numbers = [];
-
-  while (numbers.length < 24) {
-
-    const n =
-      Math.floor(Math.random() * 75) + 1;
-
-    if (!numbers.includes(n)) {
-      numbers.push(n);
+        return false;
     }
 
-  }
 
-  let index = 0;
+    container.innerHTML = "";
 
-  for (let row = 0; row < 5; row++) {
+    playerCard = [];
 
-    for (let col = 0; col < 5; col++) {
 
-      const cell =
-        document.createElement('div');
+    // Board saved by boards.js
+    let savedBoard =
+        localStorage.getItem(
+            "selectedBoard"
+        );
 
-      cell.className = 'bingo-cell';
 
-      if (row === 2 && col === 2) {
+    if (!savedBoard) {
 
-        cell.textContent = 'FREE';
-        cell.classList.add('marked');
+        console.error(
+            "NO SELECTED BOARD FOUND"
+        );
 
-        playerCard.push('FREE');
-
-      } else {
-
-        const value =
-          numbers[index++];
-
-        cell.textContent = value;
-        cell.dataset.number = value;
-
-        playerCard.push(value);
-
-      }
-
-      container.appendChild(cell);
-
+        return false;
     }
 
-  }
 
+    try {
+
+        savedBoard =
+            JSON.parse(savedBoard);
+
+    } catch (error) {
+
+        console.error(
+            "INVALID SELECTED BOARD:",
+            error
+        );
+
+        return false;
+    }
+
+
+    if (
+        !Array.isArray(savedBoard) ||
+        savedBoard.length !== 5
+    ) {
+
+        console.error(
+            "INVALID BOARD FORMAT"
+        );
+
+        return false;
+    }
+
+
+    // ===============================
+    // DRAW BOARD
+    // ===============================
+
+    savedBoard.forEach(
+        (row, rowIndex) => {
+
+            row.forEach(
+                (value, colIndex) => {
+
+                    const cell =
+                        document.createElement(
+                            "div"
+                        );
+
+                    cell.className =
+                        "bingo-cell";
+
+
+                    if (
+                        rowIndex === 2 &&
+                        colIndex === 2
+                    ) {
+
+                        cell.textContent =
+                            "FREE";
+
+                        cell.classList.add(
+                            "marked"
+                        );
+
+                        playerCard.push(
+                            "FREE"
+                        );
+
+                    } else {
+
+                        const number =
+                            Number(value);
+
+                        cell.textContent =
+                            number;
+
+                        cell.dataset.number =
+                            number;
+
+                        playerCard.push(
+                            number
+                        );
+
+                    }
+
+
+                    container.appendChild(
+                        cell
+                    );
+
+                }
+            );
+
+        }
+    );
+
+
+    console.log(
+        "PLAYER BOARD LOADED:",
+        playerCard
+    );
+
+
+    return true;
 }
 
 
@@ -97,14 +181,16 @@ function createPlayerCard() {
 
 function showCurrentNumber(number) {
 
-  const el =
-    document.getElementById('calledNumber');
+    const el =
+        document.getElementById(
+            "calledNumber"
+        );
 
-  if (!el) return;
+    if (!el) return;
 
-  el.textContent =
-    `${bingoLetter(number)} ${number}`;
 
+    el.textContent =
+        `${bingoLetter(number)} ${number}`;
 }
 
 
@@ -114,47 +200,74 @@ function showCurrentNumber(number) {
 
 function updateCalledNumbers(numbers) {
 
-  calledNumbers = numbers || [];
+    calledNumbers =
+        Array.isArray(numbers)
+            ? numbers
+            : [];
 
-  // Mark board cells
-  calledNumbers.forEach(number => {
 
-    const cell =
-      document.querySelector(
-        `[data-number="${number}"]`
-      );
+    // ===============================
+    // MARK BOARD
+    // ===============================
 
-    if (cell) {
-      cell.classList.add('marked');
-    }
+    calledNumbers.forEach(
+        number => {
 
-  });
+            const cell =
+                document.querySelector(
+                    `[data-number="${number}"]`
+                );
 
-  // Update history
-  const history =
-    document.getElementById('calledHistory');
+            if (cell) {
 
-  if (!history) return;
+                cell.classList.add(
+                    "marked"
+                );
 
-  history.innerHTML = '';
+            }
 
-  calledNumbers
-    .slice()
-    .reverse()
-    .forEach(number => {
+        }
+    );
 
-      const item =
-        document.createElement('span');
 
-      item.className = 'called-item';
+    // ===============================
+    // HISTORY
+    // ===============================
 
-      item.textContent =
-        `${bingoLetter(number)} ${number}`;
+    const history =
+        document.getElementById(
+            "calledHistory"
+        );
 
-      history.appendChild(item);
+    if (!history) return;
 
-    });
 
+    history.innerHTML = "";
+
+
+    calledNumbers
+        .slice()
+        .reverse()
+        .forEach(
+            number => {
+
+                const item =
+                    document.createElement(
+                        "span"
+                    );
+
+                item.className =
+                    "called-item";
+
+                item.textContent =
+                    `${bingoLetter(number)} ${number}`;
+
+                history.appendChild(
+                    item
+                );
+
+            }
+        );
 }
 
 
@@ -164,158 +277,385 @@ function updateCalledNumbers(numbers) {
 
 async function subscribeGame(gameId) {
 
-  if (gameChannel) {
+    if (gameChannel) {
 
-    await supabase.removeChannel(
-      gameChannel
-    );
+        await supabase.removeChannel(
+            gameChannel
+        );
 
-  }
+        gameChannel = null;
+    }
 
-  gameChannel =
-    supabase
 
-      .channel(`game-${gameId}`)
+    gameChannel =
+        supabase
 
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'games',
-          filter: `id=eq.${gameId}`
-        },
-        payload => {
+            .channel(
+                `game-${gameId}`
+            )
 
-          const game = payload.new;
+            .on(
+                "postgres_changes",
+                {
+                    event: "UPDATE",
+                    schema: "public",
+                    table: "games",
+                    filter:
+                        `id=eq.${gameId}`
+                },
 
-          if (game.current_number) {
+                payload => {
 
-            showCurrentNumber(
-              game.current_number
+                    console.log(
+                        "GAME UPDATE:",
+                        payload.new
+                    );
+
+
+                    const game =
+                        payload.new;
+
+
+                    if (
+                        game.current_number
+                    ) {
+
+                        showCurrentNumber(
+                            game.current_number
+                        );
+
+                    }
+
+
+                    updateCalledNumbers(
+                        game.called_numbers
+                    );
+
+                }
+
+            )
+
+            .subscribe(
+                status => {
+
+                    console.log(
+                        "GAME CHANNEL:",
+                        status
+                    );
+
+                }
             );
-
-          }
-
-          updateCalledNumbers(
-            game.called_numbers || []
-          );
-
-        }
-      )
-
-      .subscribe();
 
 }
 
 
 // ===============================
-// HOST NUMBER CALLER
+// NUMBER CALLER
 // ===============================
 
 async function startCalling(gameId) {
 
-  if (callTimer) {
-    clearInterval(callTimer);
-  }
-
-  const { data } =
-    await supabase
-
-      .from('games')
-
-      .select('called_numbers')
-
-      .eq('id', gameId)
-
-      .single();
-
-  let called =
-    data?.called_numbers || [];
-
-  async function callNext() {
-
-    if (called.length >= 75) {
-
-      clearInterval(callTimer);
-
-      return;
-
-    }
-
-    const available = [];
-
-    for (let i = 1; i <= 75; i++) {
-
-      if (!called.includes(i)) {
-        available.push(i);
-      }
-
-    }
-
-    const next =
-      available[
-        Math.floor(
-          Math.random() *
-          available.length
-        )
-      ];
-
-    called.push(next);
-
-    await supabase
-
-      .from('games')
-
-      .update({
-
-        current_number: next,
-
-        called_numbers: called
-
-      })
-
-      .eq('id', gameId);
-
-  }
-
-  // First number immediately
-  await callNext();
-
-  // Then every 5 seconds
-  callTimer =
-    setInterval(
-      callNext,
-      CALL_INTERVAL
+    console.log(
+        "STARTING NUMBER CALLER:",
+        gameId
     );
+
+
+    if (callTimer) {
+
+        clearInterval(
+            callTimer
+        );
+
+        callTimer = null;
+    }
+
+
+    // ===============================
+    // LOAD EXISTING GAME
+    // ===============================
+
+    const {
+        data: game,
+        error
+    } =
+        await supabase
+            .from("games")
+            .select(
+                "called_numbers,current_number,status"
+            )
+            .eq(
+                "id",
+                gameId
+            )
+            .single();
+
+
+    if (error) {
+
+        console.error(
+            "GAME LOAD ERROR:",
+            error
+        );
+
+        return;
+    }
+
+
+    let called =
+        Array.isArray(
+            game?.called_numbers
+        )
+            ? game.called_numbers
+            : [];
+
+
+    calledNumbers =
+        called;
+
+
+    updateCalledNumbers(
+        called
+    );
+
+
+    // ===============================
+    // CALL NEXT NUMBER
+    // ===============================
+
+    async function callNext() {
+
+        if (
+            called.length >= 75
+        ) {
+
+            console.log(
+                "ALL 75 NUMBERS CALLED"
+            );
+
+            clearInterval(
+                callTimer
+            );
+
+            callTimer = null;
+
+            return;
+        }
+
+
+        const available = [];
+
+
+        for (
+            let number = 1;
+            number <= 75;
+            number++
+        ) {
+
+            if (
+                !called.includes(number)
+            ) {
+
+                available.push(
+                    number
+                );
+
+            }
+
+        }
+
+
+        if (
+            available.length === 0
+        ) {
+
+            return;
+        }
+
+
+        const next =
+            available[
+                Math.floor(
+                    Math.random() *
+                    available.length
+                )
+            ];
+
+
+        called =
+            [
+                ...called,
+                next
+            ];
+
+
+        console.log(
+            "CALLING:",
+            bingoLetter(next),
+            next
+        );
+
+
+        const {
+            error: updateError
+        } =
+            await supabase
+                .from("games")
+                .update({
+
+                    current_number:
+                        next,
+
+                    called_numbers:
+                        called,
+
+                    status:
+                        "playing"
+
+                })
+                .eq(
+                    "id",
+                    gameId
+                );
+
+
+        if (updateError) {
+
+            console.error(
+                "NUMBER UPDATE ERROR:",
+                updateError
+            );
+
+            return;
+        }
+
+
+        // Update this player immediately
+        showCurrentNumber(
+            next
+        );
+
+        updateCalledNumbers(
+            called
+        );
+
+    }
+
+
+    // ===============================
+    // FIRST CALL
+    // ===============================
+
+    await callNext();
+
+
+    // ===============================
+    // EVERY 5 SECONDS
+    // ===============================
+
+    callTimer =
+        setInterval(
+            callNext,
+            CALL_INTERVAL
+        );
 
 }
 
 
 // ===============================
 // INITIALIZE GAME
-// Called from waiting.js
 // ===============================
 
 async function initializeGame() {
 
-  const gameId =
-    localStorage.getItem('gameId');
+    console.log(
+        "INITIALIZING GAME"
+    );
 
-  if (!gameId) return;
 
-  createPlayerCard();
+    const gameId =
+        localStorage.getItem(
+            "gameId"
+        );
 
-  await subscribeGame(gameId);
 
-  const isHost =
-    localStorage.getItem('isHost') === 'true';
+    if (!gameId) {
 
-  if (isHost) {
+        console.error(
+            "NO GAME ID FOUND"
+        );
 
-    await startCalling(gameId);
+        return;
+    }
 
-  }
+
+    console.log(
+        "GAME ID:",
+        gameId
+    );
+
+
+    // ===============================
+    // LOAD PLAYER BOARD
+    // ===============================
+
+    const boardLoaded =
+        loadSelectedBoard();
+
+
+    if (!boardLoaded) {
+
+        console.error(
+            "PLAYER BOARD COULD NOT BE LOADED"
+        );
+
+    }
+
+
+    // ===============================
+    // REALTIME GAME
+    // ===============================
+
+    await subscribeGame(
+        gameId
+    );
+
+
+    // ===============================
+    // START CALLING
+    // ===============================
+    //
+    // For now the player who created
+    // the game becomes the caller.
+    //
+
+    let isHost =
+        localStorage.getItem(
+            "isHost"
+        );
+
+
+    console.log(
+        "IS HOST:",
+        isHost
+    );
+
+
+    if (
+        isHost === "true"
+    ) {
+
+        await startCalling(
+            gameId
+        );
+
+    } else {
+
+        console.log(
+            "PLAYER IS NOT HOST"
+        );
+
+    }
 
 }
 
@@ -324,23 +664,44 @@ async function initializeGame() {
 // BINGO BUTTON
 // ===============================
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener(
+    "DOMContentLoaded",
+    () => {
 
-  const bingoBtn =
-    document.getElementById('bingoBtn');
+        const bingoBtn =
+            document.getElementById(
+                "bingoBtn"
+            );
 
-  if (bingoBtn) {
 
-    bingoBtn.onclick = () => {
+        if (bingoBtn) {
 
-      if (typeof checkWinner === 'function') {
+            bingoBtn.onclick =
+                () => {
 
-        checkWinner();
+                    if (
+                        typeof checkWinner ===
+                        "function"
+                    ) {
 
-      }
+                        checkWinner();
 
-    };
+                    } else {
 
-  }
+                        console.error(
+                            "checkWinner() NOT FOUND"
+                        );
 
-});
+                    }
+
+                };
+
+        }
+
+    }
+);
+
+
+console.log(
+    "GAME JS LOADED"
+);
