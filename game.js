@@ -814,20 +814,34 @@ async function initializeGame() {
     );
 
 
-    if (isHost) {
-
-        await startCalling(
-            gameId
-        );
-
-    } else {
-
-        console.log(
-            "THIS PLAYER IS NOT HOST"
-        );
-
+    console.log(
+    "CALLER CHECK:",
+    {
+        gameId: gameId,
+        isHost: isHost,
+        isHostStorage:
+            localStorage.getItem("isHost")
     }
+);
 
+
+if (isHost) {
+
+    console.log(
+        "HOST DETECTED - STARTING CALLER"
+    );
+
+    await startCalling(
+        gameId
+    );
+
+} else {
+
+    console.error(
+        "HOST NOT DETECTED - CALLER WILL NOT START"
+    );
+
+}
 
     console.log(
         "GAME INITIALIZATION COMPLETE"
