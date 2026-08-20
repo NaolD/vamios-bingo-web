@@ -617,7 +617,7 @@ async function callNextNumber(
                     called,
 
                 status:
-                    "playing"
+                    "calling"
 
             })
             .eq(
