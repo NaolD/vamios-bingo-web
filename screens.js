@@ -1,5 +1,5 @@
 // ==========================================
-// VAMIOS BINGO V1
+// VAMIOS BINGO
 // SCREEN MANAGEMENT
 // ==========================================
 
@@ -32,6 +32,7 @@ function showScreen(screenId) {
         if (!screen) {
             return;
         }
+
 
         if (id === screenId) {
 
@@ -75,7 +76,7 @@ function hideScreen(screenId) {
 
 
 // ==========================================
-// INITIAL SCREEN
+// LOBBY
 // ==========================================
 
 function showLobby() {
@@ -88,7 +89,7 @@ function showLobby() {
 
 
 // ==========================================
-// BOARD SCREEN
+// BOARD
 // ==========================================
 
 function showBoardScreen() {
@@ -101,7 +102,7 @@ function showBoardScreen() {
 
 
 // ==========================================
-// WAITING SCREEN
+// WAITING ROOM
 // ==========================================
 
 function showWaitingScreen() {
@@ -114,20 +115,100 @@ function showWaitingScreen() {
 
 
 // ==========================================
-// GAME SCREEN
+// GAME
 // ==========================================
 
-function showGameScreen() {
+async function showGameScreen() {
+
+    console.log(
+        "================================"
+    );
+
+    console.log(
+        "OPENING GAME SCREEN"
+    );
+
+    console.log(
+        "================================"
+    );
+
 
     showScreen(
         "gameScreen"
     );
 
+
+    // Give the browser one moment
+    // to display the game screen.
+
+    await new Promise(
+        resolve =>
+            setTimeout(
+                resolve,
+                100
+            )
+    );
+
+
+    // ======================================
+    // START GAME
+    // ======================================
+
+    if (
+        typeof initializeGame ===
+        "function"
+    ) {
+
+        console.log(
+            "STARTING GAME INITIALIZATION"
+        );
+
+
+        try {
+
+            await initializeGame();
+
+
+            console.log(
+                "GAME INITIALIZATION COMPLETE"
+            );
+
+        } catch (error) {
+
+            console.error(
+                "GAME INITIALIZATION ERROR:",
+                error
+            );
+
+
+            alert(
+                "GAME INITIALIZATION ERROR:\n\n" +
+                (
+                    error.message ||
+                    String(error)
+                )
+            );
+
+        }
+
+    } else {
+
+        console.error(
+            "initializeGame() NOT FOUND"
+        );
+
+
+        alert(
+            "ERROR: game.js is not loaded."
+        );
+
+    }
+
 }
 
 
 // ==========================================
-// WINNER SCREEN
+// WINNER
 // ==========================================
 
 function showWinnerScreen() {
@@ -140,7 +221,7 @@ function showWinnerScreen() {
 
 
 // ==========================================
-// UPDATE CONNECTION STATUS
+// CONNECTION STATUS
 // ==========================================
 
 function setConnectionStatus(
@@ -152,6 +233,7 @@ function setConnectionStatus(
         document.getElementById(
             "connectionStatus"
         );
+
 
     if (!element) {
         return;
