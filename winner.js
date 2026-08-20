@@ -1,12 +1,22 @@
+```javascript
 // ===============================
 // VAMIOS BINGO WINNER CHECK
 // ===============================
 
+
+// ===============================
+// CHECK MARKED
+// ===============================
+
 function isMarked(value) {
 
-  if (value === 'FREE') return true;
+    if (value === "FREE") {
+        return true;
+    }
 
-  return calledNumbers.includes(value);
+    return calledNumbers.includes(
+        Number(value)
+    );
 
 }
 
@@ -17,26 +27,41 @@ function isMarked(value) {
 
 function checkHorizontal() {
 
-  for (let row = 0; row < 5; row++) {
+    for (
+        let row = 0;
+        row < 5;
+        row++
+    ) {
 
-    let ok = true;
+        let ok = true;
 
-    for (let col = 0; col < 5; col++) {
+        for (
+            let col = 0;
+            col < 5;
+            col++
+        ) {
 
-      const value =
-        playerCard[row * 5 + col];
+            const value =
+                playerCard[
+                    row * 5 + col
+                ];
 
-      if (!isMarked(value)) {
-        ok = false;
-      }
+            if (!isMarked(value)) {
+
+                ok = false;
+                break;
+
+            }
+
+        }
+
+        if (ok) {
+            return true;
+        }
 
     }
 
-    if (ok) return true;
-
-  }
-
-  return false;
+    return false;
 
 }
 
@@ -47,26 +72,41 @@ function checkHorizontal() {
 
 function checkVertical() {
 
-  for (let col = 0; col < 5; col++) {
+    for (
+        let col = 0;
+        col < 5;
+        col++
+    ) {
 
-    let ok = true;
+        let ok = true;
 
-    for (let row = 0; row < 5; row++) {
+        for (
+            let row = 0;
+            row < 5;
+            row++
+        ) {
 
-      const value =
-        playerCard[row * 5 + col];
+            const value =
+                playerCard[
+                    row * 5 + col
+                ];
 
-      if (!isMarked(value)) {
-        ok = false;
-      }
+            if (!isMarked(value)) {
+
+                ok = false;
+                break;
+
+            }
+
+        }
+
+        if (ok) {
+            return true;
+        }
 
     }
 
-    if (ok) return true;
-
-  }
-
-  return false;
+    return false;
 
 }
 
@@ -77,18 +117,24 @@ function checkVertical() {
 
 function checkDiagonal() {
 
-  for (let i = 0; i < 5; i++) {
+    for (
+        let i = 0;
+        i < 5;
+        i++
+    ) {
 
-    const value =
-      playerCard[i * 5 + i];
+        const value =
+            playerCard[
+                i * 5 + i
+            ];
 
-    if (!isMarked(value)) {
-      return false;
+        if (!isMarked(value)) {
+            return false;
+        }
+
     }
 
-  }
-
-  return true;
+    return true;
 
 }
 
@@ -99,18 +145,24 @@ function checkDiagonal() {
 
 function checkReverseDiagonal() {
 
-  for (let i = 0; i < 5; i++) {
+    for (
+        let i = 0;
+        i < 5;
+        i++
+    ) {
 
-    const value =
-      playerCard[i * 5 + (4 - i)];
+        const value =
+            playerCard[
+                i * 5 + (4 - i)
+            ];
 
-    if (!isMarked(value)) {
-      return false;
+        if (!isMarked(value)) {
+            return false;
+        }
+
     }
 
-  }
-
-  return true;
+    return true;
 
 }
 
@@ -121,14 +173,18 @@ function checkReverseDiagonal() {
 
 function checkFourCorners() {
 
-  const corners = [
-    playerCard[0],
-    playerCard[4],
-    playerCard[20],
-    playerCard[24]
-  ];
+    const corners = [
 
-  return corners.every(isMarked);
+        playerCard[0],
+        playerCard[4],
+        playerCard[20],
+        playerCard[24]
+
+    ];
+
+    return corners.every(
+        isMarked
+    );
 
 }
 
@@ -137,152 +193,482 @@ function checkFourCorners() {
 // SHOW WINNER
 // ===============================
 
-function showWinner(pattern, prize) {
+function showWinner(
+    pattern,
+    prize
+) {
 
-  const box =
-    document.getElementById('winnerBox');
+    const box =
+        document.getElementById(
+            "winnerBox"
+        );
 
-  if (!box) return;
+    if (!box) {
 
-  box.classList.remove('hidden');
+        console.error(
+            "WINNER BOX NOT FOUND"
+        );
 
-  document.getElementById('winnerPattern').textContent =
-    `Winning Pattern: ${pattern}`;
+        return;
 
-  document.getElementById('winnerPrize').textContent =
-    `Prize: ${prize.toFixed(2)} ETB`;
+    }
+
+
+    box.classList.remove(
+        "hidden"
+    );
+
+
+    const patternElement =
+        document.getElementById(
+            "winnerPattern"
+        );
+
+
+    if (patternElement) {
+
+        patternElement.textContent =
+            `Winning Pattern: ${pattern}`;
+
+    }
+
+
+    const prizeElement =
+        document.getElementById(
+            "winnerPrize"
+        );
+
+
+    if (prizeElement) {
+
+        prizeElement.textContent =
+            `Prize: ${prize.toFixed(2)} ETB`;
+
+    }
+
 
 }
 
 
 // ===============================
-// SAVE WINNER TO SUPABASE
+// SAVE WINNER
 // ===============================
 
-async function saveWinner(pattern) {
+async function saveWinner(
+    pattern
+) {
 
-  const gameId =
-    localStorage.getItem('gameId');
+    const gameId =
+        localStorage.getItem(
+            "gameId"
+        );
 
-  const roomId =
-    localStorage.getItem('roomId');
 
-  const userId =
-    localStorage.getItem('userId');
+    const roomId =
+        localStorage.getItem(
+            "roomId"
+        );
 
-  if (!gameId || !roomId || !userId) return;
 
-  // Check if winner already exists
-  const { data: game } =
-    await supabase
+    const userId =
+        getCurrentUserId();
 
-      .from('games')
 
-      .select('winner_user_id')
+    console.log(
+        "SAVING WINNER:",
+        {
+            gameId,
+            roomId,
+            userId,
+            pattern
+        }
+    );
 
-      .eq('id', gameId)
 
-      .single();
+    if (
+        !gameId ||
+        !roomId ||
+        !userId
+    ) {
 
-  if (game?.winner_user_id) {
+        alert(
+            "Winner error: player information is missing."
+        );
 
-    alert('Winner already declared');
+        return;
 
-    return;
+    }
 
-  }
 
-  // Get room for prize calculation
-  const { data: room } =
-    await supabase
+    // ===============================
+    // LOAD GAME
+    // ===============================
 
-      .from('rooms')
+    const {
+        data: game,
+        error: gameError
+    } =
+        await supabase
+            .from("games")
+            .select(
+                "id,status,winner_user_id"
+            )
+            .eq(
+                "id",
+                gameId
+            )
+            .single();
 
-      .select('entry_fee')
 
-      .eq('id', roomId)
+    if (gameError) {
 
-      .single();
+        console.error(
+            "WINNER GAME LOAD ERROR:",
+            gameError
+        );
 
-  const { data: players } =
-    await supabase
+        alert(
+            "WINNER ERROR:\n\n" +
+            gameError.message
+        );
 
-      .from('game_players')
+        return;
 
-      .select('id')
+    }
 
-      .eq('game_id', gameId);
 
-  const totalPlayers =
-    players?.length || 0;
+    // ===============================
+    // CHECK IF ALREADY FINISHED
+    // ===============================
 
-  const prize =
-    totalPlayers *
-    room.entry_fee *
-    0.8;
+    if (
+        game.winner_user_id
+    ) {
 
-  // Save winner
-  await supabase
+        alert(
+            "A winner has already been declared."
+        );
 
-    .from('games')
+        return;
 
-    .update({
+    }
 
-      status: 'finished',
 
-      winner_user_id: userId,
+    // ===============================
+    // LOAD ROOM
+    // ===============================
 
-      winner_pattern: pattern,
+    const {
+        data: room,
+        error: roomError
+    } =
+        await supabase
+            .from("rooms")
+            .select(
+                "entry_fee"
+            )
+            .eq(
+                "id",
+                roomId
+            )
+            .single();
 
-      prize_amount: prize
 
-    })
+    if (roomError) {
 
-    .eq('id', gameId);
+        console.error(
+            "ROOM LOAD ERROR:",
+            roomError
+        );
 
-  showWinner(pattern, prize);
+        alert(
+            "WINNER ERROR:\n\n" +
+            roomError.message
+        );
+
+        return;
+
+    }
+
+
+    // ===============================
+    // COUNT PLAYERS
+    // ===============================
+
+    const {
+        data: players,
+        error: playersError
+    } =
+        await supabase
+            .from("game_players")
+            .select("id")
+            .eq(
+                "game_id",
+                gameId
+            );
+
+
+    if (playersError) {
+
+        console.error(
+            "PLAYER COUNT ERROR:",
+            playersError
+        );
+
+        alert(
+            "WINNER ERROR:\n\n" +
+            playersError.message
+        );
+
+        return;
+
+    }
+
+
+    const totalPlayers =
+        players?.length || 0;
+
+
+    // ===============================
+    // PRIZE
+    // ===============================
+
+    const prize =
+        totalPlayers *
+        Number(room.entry_fee) *
+        0.80;
+
+
+    console.log(
+        "WINNER PRIZE:",
+        prize
+    );
+
+
+    // ===============================
+    // FINISH GAME
+    // ===============================
+
+    const {
+        data: updatedGame,
+        error: updateError
+    } =
+        await supabase
+            .from("games")
+            .update({
+
+                status:
+                    "finished",
+
+                winner_user_id:
+                    userId,
+
+                finished_at:
+                    new Date().toISOString()
+
+            })
+            .eq(
+                "id",
+                gameId
+            )
+            .is(
+                "winner_user_id",
+                null
+            )
+            .select()
+            .maybeSingle();
+
+
+    if (updateError) {
+
+        console.error(
+            "WINNER UPDATE ERROR:",
+            updateError
+        );
+
+        alert(
+            "WINNER UPDATE ERROR:\n\n" +
+            updateError.message
+        );
+
+        return;
+
+    }
+
+
+    // Another player may have won
+    if (!updatedGame) {
+
+        alert(
+            "Another player has already won this game."
+        );
+
+        return;
+
+    }
+
+
+    // ===============================
+    // STOP NUMBER CALLING
+    // ===============================
+
+    if (
+        typeof stopCalling ===
+        "function"
+    ) {
+
+        stopCalling();
+
+    }
+
+
+    // ===============================
+    // SHOW WINNER
+    // ===============================
+
+    showWinner(
+        pattern,
+        prize
+    );
+
+
+    // ===============================
+    // SHOW WINNER SCREEN
+    // ===============================
+
+    if (
+        typeof showWinnerScreen ===
+        "function"
+    ) {
+
+        showWinnerScreen();
+
+    }
+
+
+    console.log(
+        "WINNER DECLARED:",
+        userId,
+        pattern,
+        prize
+    );
 
 }
 
 
 // ===============================
-// MAIN CHECK
+// MAIN BINGO CHECK
 // ===============================
 
 async function checkWinner() {
 
-  let pattern = null;
+    console.log(
+        "CHECKING BINGO..."
+    );
 
-  if (checkHorizontal()) {
 
-    pattern = 'Horizontal';
+    let pattern = null;
 
-  } else if (checkVertical()) {
 
-    pattern = 'Vertical';
+    // ===============================
+    // HORIZONTAL
+    // ===============================
 
-  } else if (checkDiagonal()) {
+    if (
+        checkHorizontal()
+    ) {
 
-    pattern = 'Diagonal';
+        pattern =
+            "Horizontal";
 
-  } else if (checkReverseDiagonal()) {
+    }
 
-    pattern = 'Reverse Diagonal';
 
-  } else if (checkFourCorners()) {
+    // ===============================
+    // VERTICAL
+    // ===============================
 
-    pattern = 'Four Corners';
+    else if (
+        checkVertical()
+    ) {
 
-  }
+        pattern =
+            "Vertical";
 
-  if (!pattern) {
+    }
 
-    alert('No Bingo yet!');
 
-    return;
+    // ===============================
+    // DIAGONAL
+    // ===============================
 
-  }
+    else if (
+        checkDiagonal()
+    ) {
 
-  await saveWinner(pattern);
+        pattern =
+            "Diagonal";
+
+    }
+
+
+    // ===============================
+    // REVERSE DIAGONAL
+    // ===============================
+
+    else if (
+        checkReverseDiagonal()
+    ) {
+
+        pattern =
+            "Reverse Diagonal";
+
+    }
+
+
+    // ===============================
+    // FOUR CORNERS
+    // ===============================
+
+    else if (
+        checkFourCorners()
+    ) {
+
+        pattern =
+            "Four Corners";
+
+    }
+
+
+    // ===============================
+    // NO BINGO
+    // ===============================
+
+    if (!pattern) {
+
+        alert(
+            "No Bingo yet!"
+        );
+
+        return;
+
+    }
+
+
+    console.log(
+        "BINGO FOUND:",
+        pattern
+    );
+
+
+    await saveWinner(
+        pattern
+    );
 
 }
+
+
+console.log(
+    "WINNER JS LOADED"
+);
+```
