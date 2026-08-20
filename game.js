@@ -1,10 +1,9 @@
-// ===============================
+// ==========================================
 // VAMIOS BINGO GAME
-// ===============================
-// Selected player board
-// Realtime synchronized calling
-// Automatic call every 5 seconds
-// ===============================
+// ==========================================
+// Player board + automatic number calling
+// Calls every 5 seconds
+// ==========================================
 
 const CALL_INTERVAL = 5000;
 
@@ -15,9 +14,9 @@ let calledNumbers = [];
 let playerCard = [];
 
 
-// ===============================
+// ==========================================
 // BINGO LETTER
-// ===============================
+// ==========================================
 
 function bingoLetter(number) {
 
@@ -32,38 +31,37 @@ function bingoLetter(number) {
 }
 
 
-// ===============================
-// LOAD SELECTED BOARD
-// ===============================
+// ==========================================
+// LOAD PLAYER BOARD
+// ==========================================
 
-function loadSelectedBoard() {
+function loadPlayerBoard() {
 
-    const container =
-        document.getElementById("bingoCard");
+    const grid =
+        document.getElementById(
+            "gameGrid"
+        );
 
-    if (!container) {
+    if (!grid) {
 
         console.error(
-            "BINGO CARD ELEMENT NOT FOUND"
+            "GAME GRID NOT FOUND"
         );
 
         return false;
     }
 
-    container.innerHTML = "";
 
-    playerCard = [];
-
-
-    const savedBoard =
+    const saved =
         localStorage.getItem(
             "selectedBoard"
         );
 
-    if (!savedBoard) {
+
+    if (!saved) {
 
         console.error(
-            "NO SELECTED BOARD FOUND"
+            "SELECTED BOARD NOT FOUND"
         );
 
         return false;
@@ -72,15 +70,16 @@ function loadSelectedBoard() {
 
     let board;
 
+
     try {
 
         board =
-            JSON.parse(savedBoard);
+            JSON.parse(saved);
 
     } catch (error) {
 
         console.error(
-            "INVALID SELECTED BOARD:",
+            "BOARD JSON ERROR:",
             error
         );
 
@@ -94,7 +93,7 @@ function loadSelectedBoard() {
     ) {
 
         console.error(
-            "INVALID BOARD FORMAT:",
+            "INVALID BOARD:",
             board
         );
 
@@ -102,68 +101,87 @@ function loadSelectedBoard() {
     }
 
 
-    // ===============================
-    // DRAW PLAYER BOARD
-    // ===============================
+    grid.innerHTML = "";
 
-    board.forEach(
-        (row, rowIndex) => {
-
-            row.forEach(
-                (value, colIndex) => {
-
-                    const cell =
-                        document.createElement(
-                            "div"
-                        );
-
-                    cell.className =
-                        "bingo-cell";
+    playerCard = [];
 
 
-                    if (
-                        rowIndex === 2 &&
-                        colIndex === 2
-                    ) {
+    // ======================================
+    // CREATE 25 CELLS
+    // ======================================
 
-                        cell.textContent =
-                            "FREE";
+    for (
+        let row = 0;
+        row < 5;
+        row++
+    ) {
 
-                        cell.classList.add(
-                            "marked"
-                        );
+        for (
+            let col = 0;
+            col < 5;
+            col++
+        ) {
 
-                        playerCard.push(
-                            "FREE"
-                        );
-
-                    } else {
-
-                        const number =
-                            Number(value);
-
-                        cell.textContent =
-                            number;
-
-                        cell.dataset.number =
-                            number;
-
-                        playerCard.push(
-                            number
-                        );
-
-                    }
+            const cell =
+                document.createElement(
+                    "div"
+                );
 
 
-                    container.appendChild(
-                        cell
-                    );
+            cell.className =
+                "bingo-cell";
 
-                }
+
+            const value =
+                board[row][col];
+
+
+            // FREE CENTER
+
+            if (
+                row === 2 &&
+                col === 2
+            ) {
+
+                cell.textContent =
+                    "FREE";
+
+                cell.classList.add(
+                    "marked"
+                );
+
+                cell.dataset.number =
+                    "FREE";
+
+                playerCard.push(
+                    "FREE"
+                );
+
+            } else {
+
+                const number =
+                    Number(value);
+
+                cell.textContent =
+                    number;
+
+                cell.dataset.number =
+                    number;
+
+                playerCard.push(
+                    number
+                );
+
+            }
+
+
+            grid.appendChild(
+                cell
             );
 
         }
-    );
+
+    }
 
 
     console.log(
@@ -176,21 +194,22 @@ function loadSelectedBoard() {
 }
 
 
-// ===============================
+// ==========================================
 // SHOW CURRENT NUMBER
-// ===============================
+// ==========================================
 
 function showCurrentNumber(number) {
 
     const element =
         document.getElementById(
-            "calledNumber"
+            "currentNumber"
         );
+
 
     if (!element) {
 
         console.error(
-            "CALLED NUMBER ELEMENT NOT FOUND"
+            "CURRENT NUMBER ELEMENT NOT FOUND"
         );
 
         return;
@@ -202,9 +221,29 @@ function showCurrentNumber(number) {
 }
 
 
-// ===============================
+// ==========================================
+// UPDATE CALLED COUNT
+// ==========================================
+
+function updateCalledCount() {
+
+    const element =
+        document.getElementById(
+            "calledCount"
+        );
+
+
+    if (!element) return;
+
+
+    element.textContent =
+        `${calledNumbers.length} / 75`;
+}
+
+
+// ==========================================
 // UPDATE CALLED NUMBERS
-// ===============================
+// ==========================================
 
 function updateCalledNumbers(numbers) {
 
@@ -214,9 +253,9 @@ function updateCalledNumbers(numbers) {
             : [];
 
 
-    // ===============================
+    // ======================================
     // MARK PLAYER BOARD
-    // ===============================
+    // ======================================
 
     calledNumbers.forEach(
         number => {
@@ -225,6 +264,7 @@ function updateCalledNumbers(numbers) {
                 document.querySelector(
                     `[data-number="${number}"]`
                 );
+
 
             if (cell) {
 
@@ -238,21 +278,34 @@ function updateCalledNumbers(numbers) {
     );
 
 
-    // ===============================
-    // CALLED NUMBER HISTORY
-    // ===============================
+    // ======================================
+    // COUNT
+    // ======================================
 
-    const history =
+    updateCalledCount();
+
+
+    // ======================================
+    // HISTORY
+    // ======================================
+
+    const container =
         document.getElementById(
-            "calledHistory"
+            "calledNumbers"
         );
 
-    if (!history) {
+
+    if (!container) {
+
+        console.error(
+            "CALLED NUMBERS ELEMENT NOT FOUND"
+        );
+
         return;
     }
 
 
-    history.innerHTML = "";
+    container.innerHTML = "";
 
 
     calledNumbers
@@ -266,121 +319,33 @@ function updateCalledNumbers(numbers) {
                         "span"
                     );
 
+
                 item.className =
                     "called-item";
+
 
                 item.textContent =
                     `${bingoLetter(number)} ${number}`;
 
-                history.appendChild(
+
+                container.appendChild(
                     item
                 );
 
             }
         );
+
 }
 
 
-// ===============================
-// SUBSCRIBE TO GAME
-// ===============================
+// ==========================================
+// LOAD GAME FROM SUPABASE
+// ==========================================
 
-async function subscribeGame(gameId) {
-
-    if (gameChannel) {
-
-        await supabase.removeChannel(
-            gameChannel
-        );
-
-        gameChannel = null;
-    }
-
-
-    gameChannel =
-        supabase
-            .channel(
-                `game-${gameId}`
-            )
-            .on(
-                "postgres_changes",
-                {
-                    event: "UPDATE",
-                    schema: "public",
-                    table: "games",
-                    filter:
-                        `id=eq.${gameId}`
-                },
-                payload => {
-
-                    console.log(
-                        "GAME UPDATE:",
-                        payload.new
-                    );
-
-
-                    const game =
-                        payload.new;
-
-
-                    if (
-                        game.current_number
-                    ) {
-
-                        showCurrentNumber(
-                            game.current_number
-                        );
-
-                    }
-
-
-                    updateCalledNumbers(
-                        game.called_numbers
-                    );
-
-                }
-            )
-            .subscribe(
-                status => {
-
-                    console.log(
-                        "GAME CHANNEL STATUS:",
-                        status
-                    );
-
-                }
-            );
-}
-
-
-// ===============================
-// START NUMBER CALLING
-// ===============================
-
-async function startCalling(gameId) {
-
-    console.log(
-        "STARTING NUMBER CALLER:",
-        gameId
-    );
-
-
-    if (callTimer) {
-
-        clearInterval(
-            callTimer
-        );
-
-        callTimer = null;
-    }
-
-
-    // ===============================
-    // LOAD CURRENT GAME
-    // ===============================
+async function loadGame(gameId) {
 
     const {
-        data: game,
+        data,
         error
     } =
         await supabase
@@ -402,177 +367,376 @@ async function startCalling(gameId) {
             error
         );
 
+        return null;
+    }
+
+
+    console.log(
+        "GAME LOADED:",
+        data
+    );
+
+
+    updateCalledNumbers(
+        data.called_numbers
+    );
+
+
+    if (
+        data.current_number
+    ) {
+
+        showCurrentNumber(
+            data.current_number
+        );
+
+    }
+
+
+    return data;
+}
+
+
+// ==========================================
+// REALTIME GAME
+// ==========================================
+
+async function subscribeGame(gameId) {
+
+    if (gameChannel) {
+
+        await supabase.removeChannel(
+            gameChannel
+        );
+
+        gameChannel = null;
+    }
+
+
+    console.log(
+        "SUBSCRIBING TO GAME:",
+        gameId
+    );
+
+
+    gameChannel =
+        supabase
+            .channel(
+                `game-${gameId}`
+            )
+            .on(
+                "postgres_changes",
+                {
+                    event: "UPDATE",
+                    schema: "public",
+                    table: "games",
+                    filter:
+                        `id=eq.${gameId}`
+                },
+                payload => {
+
+                    console.log(
+                        "REALTIME GAME UPDATE:",
+                        payload.new
+                    );
+
+
+                    const game =
+                        payload.new;
+
+
+                    updateCalledNumbers(
+                        game.called_numbers
+                    );
+
+
+                    if (
+                        game.current_number
+                    ) {
+
+                        showCurrentNumber(
+                            game.current_number
+                        );
+
+                    }
+
+                }
+            )
+            .subscribe(
+                status => {
+
+                    console.log(
+                        "GAME REALTIME STATUS:",
+                        status
+                    );
+
+                }
+            );
+
+}
+
+
+// ==========================================
+// CALL NEXT NUMBER
+// ==========================================
+
+async function callNextNumber(
+    gameId
+) {
+
+    // ======================================
+    // GET CURRENT GAME STATE
+    // ======================================
+
+    const {
+        data: game,
+        error
+    } =
+        await supabase
+            .from("games")
+            .select(
+                "called_numbers,current_number,status"
+            )
+            .eq(
+                "id",
+                gameId
+            )
+            .single();
+
+
+    if (error) {
+
+        console.error(
+            "CALL LOAD ERROR:",
+            error
+        );
+
         return;
     }
 
 
     let called =
         Array.isArray(
-            game?.called_numbers
+            game.called_numbers
         )
             ? game.called_numbers
             : [];
 
 
-    calledNumbers =
-        called;
+    if (
+        called.length >= 75
+    ) {
 
+        console.log(
+            "ALL NUMBERS CALLED"
+        );
+
+        stopCalling();
+
+        return;
+    }
+
+
+    // ======================================
+    // FIND AVAILABLE NUMBERS
+    // ======================================
+
+    const available = [];
+
+
+    for (
+        let number = 1;
+        number <= 75;
+        number++
+    ) {
+
+        if (
+            !called.includes(number)
+        ) {
+
+            available.push(
+                number
+            );
+
+        }
+
+    }
+
+
+    if (
+        available.length === 0
+    ) {
+
+        stopCalling();
+
+        return;
+    }
+
+
+    // ======================================
+    // RANDOM NUMBER
+    // ======================================
+
+    const next =
+        available[
+            Math.floor(
+                Math.random() *
+                available.length
+            )
+        ];
+
+
+    called = [
+        ...called,
+        next
+    ];
+
+
+    console.log(
+        "CALLING:",
+        bingoLetter(next),
+        next
+    );
+
+
+    // ======================================
+    // SAVE TO SUPABASE
+    // ======================================
+
+    const {
+        error: updateError
+    } =
+        await supabase
+            .from("games")
+            .update({
+
+                current_number:
+                    next,
+
+                called_numbers:
+                    called,
+
+                status:
+                    "playing"
+
+            })
+            .eq(
+                "id",
+                gameId
+            );
+
+
+    if (updateError) {
+
+        console.error(
+            "CALL UPDATE ERROR:",
+            updateError
+        );
+
+        return;
+    }
+
+
+    // ======================================
+    // UPDATE SCREEN IMMEDIATELY
+    // ======================================
+
+    showCurrentNumber(
+        next
+    );
 
     updateCalledNumbers(
         called
     );
 
-
-    // ===============================
-    // CALL NEXT NUMBER
-    // ===============================
-
-    async function callNext() {
-
-        if (
-            called.length >= 75
-        ) {
-
-            console.log(
-                "ALL 75 NUMBERS CALLED"
-            );
-
-            clearInterval(
-                callTimer
-            );
-
-            callTimer = null;
-
-            return;
-        }
+}
 
 
-        const available = [];
+// ==========================================
+// START CALLING
+// ==========================================
+
+async function startCalling(
+    gameId
+) {
+
+    console.log(
+        "STARTING CALLER:",
+        gameId
+    );
 
 
-        for (
-            let number = 1;
-            number <= 75;
-            number++
-        ) {
-
-            if (
-                !called.includes(number)
-            ) {
-
-                available.push(
-                    number
-                );
-
-            }
-
-        }
+    stopCalling();
 
 
-        if (
-            available.length === 0
-        ) {
+    // First call immediately
 
-            return;
-        }
-
-
-        const next =
-            available[
-                Math.floor(
-                    Math.random() *
-                    available.length
-                )
-            ];
+    await callNextNumber(
+        gameId
+    );
 
 
-        called = [
-            ...called,
-            next
-        ];
-
-
-        console.log(
-            "CALLING:",
-            bingoLetter(next),
-            next
-        );
-
-
-        const {
-            error: updateError
-        } =
-            await supabase
-                .from("games")
-                .update({
-
-                    current_number:
-                        next,
-
-                    called_numbers:
-                        called,
-
-                    status:
-                        "playing"
-
-                })
-                .eq(
-                    "id",
-                    gameId
-                );
-
-
-        if (updateError) {
-
-            console.error(
-                "NUMBER UPDATE ERROR:",
-                updateError
-            );
-
-            return;
-        }
-
-
-        // Update this screen immediately
-        showCurrentNumber(
-            next
-        );
-
-        updateCalledNumbers(
-            called
-        );
-
-    }
-
-
-    // ===============================
-    // FIRST CALL
-    // ===============================
-
-    await callNext();
-
-
-    // ===============================
-    // EVERY 5 SECONDS
-    // ===============================
+    // Then every 5 seconds
 
     callTimer =
         setInterval(
-            callNext,
+            () => {
+
+                callNextNumber(
+                    gameId
+                );
+
+            },
             CALL_INTERVAL
         );
+
+
+    console.log(
+        "CALL TIMER STARTED: 5 SECONDS"
+    );
 
 }
 
 
-// ===============================
+// ==========================================
+// STOP CALLING
+// ==========================================
+
+function stopCalling() {
+
+    if (callTimer) {
+
+        clearInterval(
+            callTimer
+        );
+
+        callTimer = null;
+
+        console.log(
+            "CALL TIMER STOPPED"
+        );
+
+    }
+
+}
+
+
+// ==========================================
 // INITIALIZE GAME
-// ===============================
+// ==========================================
 
 async function initializeGame() {
 
     console.log(
-        "INITIALIZING GAME"
+        "================================"
+    );
+
+    console.log(
+        "INITIALIZING VAMIOS BINGO GAME"
+    );
+
+    console.log(
+        "================================"
     );
 
 
@@ -582,52 +746,61 @@ async function initializeGame() {
         );
 
 
-    if (!gameId) {
-
-        console.error(
-            "NO GAME ID FOUND"
-        );
-
-        return;
-    }
-
-
     console.log(
         "GAME ID:",
         gameId
     );
 
 
-    // ===============================
-    // LOAD SELECTED BOARD
-    // ===============================
-
-    const boardLoaded =
-        loadSelectedBoard();
-
-
-    if (!boardLoaded) {
+    if (!gameId) {
 
         console.error(
-            "PLAYER BOARD COULD NOT BE LOADED"
+            "NO GAME ID IN LOCAL STORAGE"
         );
 
         return;
     }
 
 
-    // ===============================
-    // REALTIME GAME
-    // ===============================
+    // ======================================
+    // LOAD PLAYER BOARD
+    // ======================================
+
+    const boardLoaded =
+        loadPlayerBoard();
+
+
+    if (!boardLoaded) {
+
+        console.error(
+            "PLAYER BOARD FAILED TO LOAD"
+        );
+
+        return;
+    }
+
+
+    // ======================================
+    // LOAD CURRENT GAME
+    // ======================================
+
+    await loadGame(
+        gameId
+    );
+
+
+    // ======================================
+    // REALTIME
+    // ======================================
 
     await subscribeGame(
         gameId
     );
 
 
-    // ===============================
-    // START CALLER
-    // ===============================
+    // ======================================
+    // HOST CALLER
+    // ======================================
 
     const isHost =
         localStorage.getItem(
@@ -647,14 +820,25 @@ async function initializeGame() {
             gameId
         );
 
+    } else {
+
+        console.log(
+            "THIS PLAYER IS NOT HOST"
+        );
+
     }
+
+
+    console.log(
+        "GAME INITIALIZATION COMPLETE"
+    );
 
 }
 
 
-// ===============================
+// ==========================================
 // BINGO BUTTON
-// ===============================
+// ==========================================
 
 document.addEventListener(
     "DOMContentLoaded",
@@ -666,33 +850,52 @@ document.addEventListener(
             );
 
 
-        if (bingoBtn) {
+        if (!bingoBtn) {
 
-            bingoBtn.onclick =
-                () => {
+            console.error(
+                "BINGO BUTTON NOT FOUND"
+            );
 
-                    if (
-                        typeof checkWinner ===
-                        "function"
-                    ) {
-
-                        checkWinner();
-
-                    } else {
-
-                        console.error(
-                            "checkWinner() NOT FOUND"
-                        );
-
-                    }
-
-                };
-
+            return;
         }
+
+
+        bingoBtn.onclick =
+            function () {
+
+                console.log(
+                    "BINGO BUTTON CLICKED"
+                );
+
+
+                if (
+                    typeof checkWinner ===
+                    "function"
+                ) {
+
+                    checkWinner();
+
+                } else {
+
+                    console.error(
+                        "checkWinner() NOT FOUND"
+                    );
+
+                    alert(
+                        "Winner checking is not ready yet."
+                    );
+
+                }
+
+            };
 
     }
 );
 
+
+// ==========================================
+// GAME JS LOADED
+// ==========================================
 
 console.log(
     "GAME JS LOADED"
