@@ -725,8 +725,7 @@ function stopCalling() {
 // INITIALIZE GAME
 // ==========================================
 
-async function initializeGame() {
-
+async function initializeGame(gameId) {
     console.log(
         "================================"
     );
@@ -738,13 +737,6 @@ async function initializeGame() {
     console.log(
         "================================"
     );
-
-
-    const gameId =
-        localStorage.getItem(
-            "gameId"
-        );
-
 
     console.log(
         "GAME ID:",
