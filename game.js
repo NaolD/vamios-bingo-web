@@ -193,6 +193,96 @@ function loadPlayerBoard() {
     return true;
 }
 
+function setupBoardClickHandlers() {
+
+    const grid =
+        document.getElementById(
+            "gameGrid"
+        );
+
+    if (!grid) {
+
+        console.error(
+            "GAME GRID NOT FOUND FOR CLICK HANDLERS"
+        );
+
+        return;
+    }
+
+
+    const cells =
+        grid.querySelectorAll(
+            ".bingo-cell"
+        );
+
+
+    cells.forEach(
+        cell => {
+
+            cell.addEventListener(
+                "click",
+                function () {
+
+                    const value =
+                        this.dataset.number;
+
+
+                    // FREE is always marked
+                    if (value === "FREE") {
+
+                        this.classList.add(
+                            "marked"
+                        );
+
+                        return;
+                    }
+
+
+                    const number =
+                        Number(value);
+
+
+                    // Only called numbers
+                    // can be manually marked
+                    if (
+                        !calledNumbers.includes(
+                            number
+                        )
+                    ) {
+
+                        console.log(
+                            "NUMBER NOT CALLED:",
+                            number
+                        );
+
+                        return;
+                    }
+
+
+                    // Toggle mark
+                    this.classList.toggle(
+                        "marked"
+                    );
+
+
+                    console.log(
+                        "PLAYER MARKED:",
+                        number
+                    );
+
+                }
+            );
+
+        }
+    );
+
+
+    console.log(
+        "BOARD CLICK HANDLERS READY:",
+        cells.length
+    );
+
+}
 
 // ==========================================
 // SHOW CURRENT NUMBER
@@ -268,12 +358,10 @@ function updateCalledNumbers(numbers) {
 
             if (cell) {
 
-                cell.classList.add(
-                    "marked"
-                );
+    // Do not automatically mark.
+    // Player marks called numbers manually.
 
-            }
-
+}
         }
     );
 
@@ -754,24 +842,25 @@ async function initializeGame(gameId) {
     }
 
 
-    // ======================================
-    // LOAD PLAYER BOARD
-    // ======================================
+// ======================================
+// LOAD PLAYER BOARD
+// ======================================
 
-    const boardLoaded =
-        loadPlayerBoard();
-
-
-    if (!boardLoaded) {
-
-        console.error(
-            "PLAYER BOARD FAILED TO LOAD"
-        );
-
-        return;
-    }
+const boardLoaded =
+    loadPlayerBoard();
 
 
+if (!boardLoaded) {
+
+    console.error(
+        "PLAYER BOARD FAILED TO LOAD"
+    );
+
+    return;
+}
+
+
+setupBoardClickHandlers();
     // ======================================
     // LOAD CURRENT GAME
     // ======================================
