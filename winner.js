@@ -1,198 +1,537 @@
-cat > winner.js <<'EOF'
+// ==========================================
+// VAMIOS BINGO WINNER SYSTEM
+// ==========================================
+
+
+// ==========================================
+// CHECK MARKED NUMBER
+// ==========================================
+
 function isMarked(value) {
-    if (value === "FREE") return true;
-    return calledNumbers.includes(Number(value));
+
+    if (value === "FREE") {
+        return true;
+    }
+
+    return calledNumbers.includes(
+        Number(value)
+    );
+
 }
+
+
+// ==========================================
+// HORIZONTAL
+// ==========================================
 
 function checkHorizontal() {
-    for (let row = 0; row < 5; row++) {
+
+    for (
+        let row = 0;
+        row < 5;
+        row++
+    ) {
+
         let complete = true;
 
-        for (let col = 0; col < 5; col++) {
-            if (!isMarked(playerCard[row * 5 + col])) {
+        for (
+            let col = 0;
+            col < 5;
+            col++
+        ) {
+
+            const value =
+                playerCard[
+                    row * 5 + col
+                ];
+
+            if (!isMarked(value)) {
                 complete = false;
                 break;
             }
+
         }
 
-        if (complete) return true;
+        if (complete) {
+            return true;
+        }
+
     }
 
     return false;
+
 }
+
+
+// ==========================================
+// VERTICAL
+// ==========================================
 
 function checkVertical() {
-    for (let col = 0; col < 5; col++) {
+
+    for (
+        let col = 0;
+        col < 5;
+        col++
+    ) {
+
         let complete = true;
 
-        for (let row = 0; row < 5; row++) {
-            if (!isMarked(playerCard[row * 5 + col])) {
+        for (
+            let row = 0;
+            row < 5;
+            row++
+        ) {
+
+            const value =
+                playerCard[
+                    row * 5 + col
+                ];
+
+            if (!isMarked(value)) {
                 complete = false;
                 break;
             }
+
         }
 
-        if (complete) return true;
+        if (complete) {
+            return true;
+        }
+
     }
 
     return false;
+
 }
+
+
+// ==========================================
+// MAIN DIAGONAL
+// ==========================================
 
 function checkDiagonal() {
-    for (let i = 0; i < 5; i++) {
-        if (!isMarked(playerCard[i * 5 + i])) {
+
+    for (
+        let i = 0;
+        i < 5;
+        i++
+    ) {
+
+        const value =
+            playerCard[
+                i * 5 + i
+            ];
+
+        if (!isMarked(value)) {
             return false;
         }
+
     }
 
     return true;
+
 }
+
+
+// ==========================================
+// REVERSE DIAGONAL
+// ==========================================
 
 function checkReverseDiagonal() {
-    for (let i = 0; i < 5; i++) {
-        if (!isMarked(playerCard[i * 5 + (4 - i)])) {
+
+    for (
+        let i = 0;
+        i < 5;
+        i++
+    ) {
+
+        const value =
+            playerCard[
+                i * 5 + (4 - i)
+            ];
+
+        if (!isMarked(value)) {
             return false;
         }
+
     }
 
     return true;
+
 }
 
+
+// ==========================================
+// FOUR CORNERS
+// ==========================================
+
 function checkFourCorners() {
-    return [
+
+    const corners = [
+
         playerCard[0],
         playerCard[4],
         playerCard[20],
         playerCard[24]
-    ].every(value => isMarked(value));
+
+    ];
+
+    return corners.every(
+        value => isMarked(value)
+    );
+
 }
 
-function showWinner(pattern, prize) {
 
-    const box =
-        document.getElementById("winnerBox");
+// ==========================================
+// SHOW WINNER
+// ==========================================
 
-    if (!box) {
-        console.error("WINNER BOX NOT FOUND");
+function showWinner(
+    pattern,
+    prize
+) {
+
+    console.log(
+        "SHOW WINNER:",
+        pattern,
+        prize
+    );
+
+
+    const winnerBox =
+        document.getElementById(
+            "winnerBox"
+        );
+
+
+    if (!winnerBox) {
+
+        console.error(
+            "WINNER BOX NOT FOUND"
+        );
+
         return;
+
     }
 
-    box.classList.remove("hidden");
+
+    winnerBox.classList.remove(
+        "hidden"
+    );
+
 
     const patternElement =
-        document.getElementById("winnerPattern");
+        document.getElementById(
+            "winnerPattern"
+        );
+
 
     if (patternElement) {
+
         patternElement.textContent =
-            "Winning Pattern: " + pattern;
+            "Winning Pattern: " +
+            pattern;
+
     }
+
 
     const prizeElement =
-        document.getElementById("winnerPrize");
+        document.getElementById(
+            "winnerPrize"
+        );
+
 
     if (prizeElement) {
+
         prizeElement.textContent =
-            "Prize: " + Number(prize).toFixed(2) + " ETB";
+            "Prize: " +
+            Number(prize).toFixed(2) +
+            " ETB";
+
     }
+
+
+    if (
+        typeof showWinnerScreen ===
+        "function"
+    ) {
+
+        showWinnerScreen();
+
+    }
+
 }
 
-async function saveWinner(pattern) {
+
+// ==========================================
+// SAVE WINNER
+// ==========================================
+
+async function saveWinner(
+    pattern
+) {
+
+    console.log(
+        "SAVING WINNER:",
+        pattern
+    );
+
 
     const gameId =
-        localStorage.getItem("gameId");
+        localStorage.getItem(
+            "gameId"
+        );
+
 
     const roomId =
-        localStorage.getItem("roomId");
+        localStorage.getItem(
+            "roomId"
+        );
 
-    const userId =
-        localStorage.getItem("userId");
 
-    if (!gameId || !roomId || !userId) {
-        alert("Winner information is missing.");
-        return;
+    let userId =
+        localStorage.getItem(
+            "userId"
+        );
+
+
+    // ======================================
+    // GET USER ID IF NOT IN LOCAL STORAGE
+    // ======================================
+
+    if (!userId) {
+
+        if (
+            typeof getCurrentUserId ===
+            "function"
+        ) {
+
+            userId =
+                getCurrentUserId();
+
+        }
+
     }
+
+
+    if (
+        !gameId ||
+        !roomId ||
+        !userId
+    ) {
+
+        console.error(
+            "WINNER INFORMATION IS MISSING:",
+            {
+                gameId,
+                roomId,
+                userId
+            }
+        );
+
+        alert(
+            "Winner information is missing."
+        );
+
+        return;
+
+    }
+
+
+    // ======================================
+    // CHECK CURRENT GAME
+    // ======================================
 
     const {
         data: game,
         error: gameError
-    } = await supabase
-        .from("games")
-        .select("winner_user_id,status")
-        .eq("id", gameId)
-        .single();
+    } =
+        await supabase
+            .from("games")
+            .select(
+                "id,status,winner_user_id"
+            )
+            .eq(
+                "id",
+                gameId
+            )
+            .single();
+
 
     if (gameError) {
-        console.error("GAME LOAD ERROR:", gameError);
-        alert(gameError.message);
+
+        console.error(
+            "GAME LOAD ERROR:",
+            gameError
+        );
+
+        alert(
+            "Could not load game."
+        );
+
         return;
+
     }
 
-    if (game?.winner_user_id) {
-        alert("Winner already declared.");
+
+    // ======================================
+    // CHECK EXISTING WINNER
+    // ======================================
+
+    if (game.winner_user_id) {
+
+        alert(
+            "Winner already declared."
+        );
+
         return;
+
     }
+
+
+    // ======================================
+    // LOAD ROOM
+    // ======================================
 
     const {
         data: room,
         error: roomError
-    } = await supabase
-        .from("rooms")
-        .select("entry_fee")
-        .eq("id", roomId)
-        .single();
+    } =
+        await supabase
+            .from("rooms")
+            .select(
+                "entry_fee"
+            )
+            .eq(
+                "id",
+                roomId
+            )
+            .single();
+
 
     if (roomError) {
-        console.error("ROOM LOAD ERROR:", roomError);
-        alert(roomError.message);
+
+        console.error(
+            "ROOM LOAD ERROR:",
+            roomError
+        );
+
+        alert(
+            "Could not load room."
+        );
+
         return;
+
     }
+
+
+    // ======================================
+    // LOAD PLAYERS
+    // ======================================
 
     const {
         data: players,
         error: playersError
-    } = await supabase
-        .from("game_players")
-        .select("id")
-        .eq("game_id", gameId);
+    } =
+        await supabase
+            .from("game_players")
+            .select("id")
+            .eq(
+                "game_id",
+                gameId
+            );
+
 
     if (playersError) {
-        console.error("PLAYERS LOAD ERROR:", playersError);
-        alert(playersError.message);
+
+        console.error(
+            "PLAYERS LOAD ERROR:",
+            playersError
+        );
+
+        alert(
+            "Could not load players."
+        );
+
         return;
+
     }
 
+
     const totalPlayers =
-        players?.length || 0;
+        players
+            ? players.length
+            : 0;
+
+
+    // ======================================
+    // CALCULATE PRIZE
+    // ======================================
 
     const prize =
         totalPlayers *
         Number(room.entry_fee) *
         0.80;
 
+
+    console.log(
+        "PRIZE:",
+        prize
+    );
+
+
+    // ======================================
+    // SAVE WINNER
+    // ======================================
+
     const {
         error: updateError
-    } = await supabase
-        .from("games")
-        .update({
-            status: "finished",
-            winner_user_id: Number(userId),
-            winner_pattern: pattern,
-            prize_amount: prize
-        })
-        .eq("id", gameId)
-        .is("winner_user_id", null);
+    } =
+        await supabase
+            .from("games")
+            .update({
+
+                status:
+                    "finished",
+
+                winner_user_id:
+                    Number(userId)
+
+            })
+            .eq(
+                "id",
+                gameId
+            );
+
 
     if (updateError) {
-        console.error("WINNER SAVE ERROR:", updateError);
-        alert(updateError.message);
+
+        console.error(
+            "WINNER SAVE ERROR:",
+            updateError
+        );
+
+        alert(
+            "Could not save winner:\n\n" +
+            updateError.message
+        );
+
         return;
+
     }
 
-    if (typeof stopCalling === "function") {
-        stopCalling();
-    }
 
-    showWinner(pattern, prize);
+    // ======================================
+    // SHOW WINNER
+    // ======================================
+
+    showWinner(
+        pattern,
+        prize
+    );
+
 
     console.log(
         "WINNER DECLARED:",
@@ -200,49 +539,130 @@ async function saveWinner(pattern) {
         pattern,
         prize
     );
+
 }
+
+
+// ==========================================
+// MAIN BINGO CHECK
+// ==========================================
 
 async function checkWinner() {
 
-    console.log("CHECKING BINGO...");
-    console.log("PLAYER CARD:", playerCard);
-    console.log("CALLED NUMBERS:", calledNumbers);
+    console.log(
+        "CHECKING BINGO..."
+    );
+
+
+    // ======================================
+    // MAKE SURE BOARD EXISTS
+    // ======================================
 
     if (
         !Array.isArray(playerCard) ||
         playerCard.length !== 25
     ) {
-        alert("Your Bingo board is not ready.");
+
+        console.error(
+            "PLAYER CARD NOT READY:",
+            playerCard
+        );
+
+        alert(
+            "Your Bingo board is not ready."
+        );
+
         return;
+
     }
 
-    let pattern = null;
+
+    // ======================================
+    // CHECK HORIZONTAL
+    // ======================================
 
     if (checkHorizontal()) {
-        pattern = "Horizontal";
-    }
-    else if (checkVertical()) {
-        pattern = "Vertical";
-    }
-    else if (checkDiagonal()) {
-        pattern = "Diagonal";
-    }
-    else if (checkReverseDiagonal()) {
-        pattern = "Reverse Diagonal";
-    }
-    else if (checkFourCorners()) {
-        pattern = "Four Corners";
-    }
 
-    if (!pattern) {
-        alert("No Bingo yet!");
+        await saveWinner(
+            "Horizontal"
+        );
+
         return;
+
     }
 
-    console.log("BINGO FOUND:", pattern);
 
-    await saveWinner(pattern);
+    // ======================================
+    // CHECK VERTICAL
+    // ======================================
+
+    if (checkVertical()) {
+
+        await saveWinner(
+            "Vertical"
+        );
+
+        return;
+
+    }
+
+
+    // ======================================
+    // CHECK DIAGONAL
+    // ======================================
+
+    if (checkDiagonal()) {
+
+        await saveWinner(
+            "Diagonal"
+        );
+
+        return;
+
+    }
+
+
+    // ======================================
+    // CHECK REVERSE DIAGONAL
+    // ======================================
+
+    if (checkReverseDiagonal()) {
+
+        await saveWinner(
+            "Reverse Diagonal"
+        );
+
+        return;
+
+    }
+
+
+    // ======================================
+    // CHECK FOUR CORNERS
+    // ======================================
+
+    if (checkFourCorners()) {
+
+        await saveWinner(
+            "Four Corners"
+        );
+
+        return;
+
+    }
+
+
+    // ======================================
+    // NO BINGO
+    // ======================================
+
+    alert(
+        "No Bingo yet!"
+    );
+
 }
 
-console.log("WINNER JS LOADED");
-EOF
+
+console.log(
+    "WINNER JS LOADED"
+);
