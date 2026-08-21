@@ -1151,3 +1151,275 @@ document.addEventListener(
 console.log(
     "WINNER JS LOADED"
 );
+
+// ==========================================
+// WINNER SYNCHRONIZATION
+// ==========================================
+
+let winnerSyncTimer = null;
+let winnerSyncShowing = false;
+
+function startWinnerSynchronization() {
+
+    if (winnerSyncTimer) {
+
+        clearInterval(
+            winnerSyncTimer
+        );
+
+    }
+
+
+    winnerSyncTimer =
+        setInterval(
+            async function () {
+
+                const gameId =
+                    localStorage.getItem(
+                        "gameId"
+                    );
+
+
+                if (!gameId) {
+                    return;
+                }
+
+
+                if (winnerSyncShowing) {
+                    return;
+                }
+
+
+                // ==================================
+                // CHECK GAME
+                // ==================================
+
+                const {
+                    data: game,
+                    error
+                } =
+                    await supabase
+                        .from("games")
+                        .select(
+                            "status,winner_user_id"
+                        )
+                        .eq(
+                            "id",
+                            gameId
+                        )
+                        .single();
+
+
+                if (error) {
+
+                    console.error(
+                        "WINNER SYNC ERROR:",
+                        error
+                    );
+
+                    return;
+
+                }
+
+
+                // ==================================
+                // NO WINNER YET
+                // ==================================
+
+                if (
+                    !game ||
+                    (
+                        game.status !==
+                            "finished" &&
+                        !game.winner_user_id
+                    )
+                ) {
+
+                    return;
+
+                }
+
+
+                // ==================================
+                // WINNER FOUND
+                // ==================================
+
+                winnerSyncShowing =
+                    true;
+
+
+                console.log(
+                    "WINNER DETECTED:",
+                    game.winner_user_id
+                );
+
+
+                // ==================================
+                // STOP NUMBER CALLING
+                // ==================================
+
+                if (
+                    typeof stopCalling ===
+                    "function"
+                ) {
+
+                    stopCalling();
+
+                }
+
+
+                // ==================================
+                // GET WINNER BOARD
+                // ==================================
+
+                const {
+                    data: winnerPlayer,
+                    error: winnerError
+                } =
+                    await supabase
+                        .from("game_players")
+                        .select(
+                            "board_number,board"
+                        )
+                        .eq(
+                            "game_id",
+                            gameId
+                        )
+                        .eq(
+                            "user_id",
+                            game.winner_user_id
+                        )
+                        .single();
+
+
+                if (winnerError) {
+
+                    console.error(
+                        "WINNER BOARD LOAD ERROR:",
+                        winnerError
+                    );
+
+                    return;
+
+                }
+
+
+                if (
+                    !winnerPlayer ||
+                    !winnerPlayer.board
+                ) {
+
+                    console.error(
+                        "WINNER BOARD NOT FOUND"
+                    );
+
+                    return;
+
+                }
+
+
+                // ==================================
+                // SAVE WINNER BOARD LOCALLY
+                // ==================================
+
+                localStorage.setItem(
+                    "selectedBoard",
+                    typeof winnerPlayer.board ===
+                        "string"
+                        ? winnerPlayer.board
+                        : JSON.stringify(
+                            winnerPlayer.board
+                        )
+                );
+
+
+                localStorage.setItem(
+                    "selectedBoardNumber",
+                    String(
+                        winnerPlayer.board_number
+                    )
+                );
+
+
+                // ==================================
+                // SHOW WINNER BOARD
+                // ==================================
+
+                showWinnerBoard();
+
+
+                // ==================================
+                // SHOW WINNER SCREEN
+                // ==================================
+
+                if (
+                    typeof showWinnerScreen ===
+                    "function"
+                ) {
+
+                    showWinnerScreen();
+
+                } else {
+
+                    const gameScreen =
+                        document.getElementById(
+                            "gameScreen"
+                        );
+
+                    const winnerScreen =
+                        document.getElementById(
+                            "winnerScreen"
+                        );
+
+
+                    if (gameScreen) {
+
+                        gameScreen.classList.add(
+                            "hidden"
+                        );
+
+                    }
+
+
+                    if (winnerScreen) {
+
+                        winnerScreen.classList.remove(
+                            "hidden"
+                        );
+
+                    }
+
+                }
+
+
+                console.log(
+                    "WINNER SCREEN SYNCHRONIZED"
+                );
+
+
+                clearInterval(
+                    winnerSyncTimer
+                );
+
+                winnerSyncTimer =
+                    null;
+
+            },
+            1000
+        );
+
+
+    console.log(
+        "WINNER SYNCHRONIZATION STARTED"
+    );
+
+}
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+        startWinnerSynchronization();
+
+    }
+);
