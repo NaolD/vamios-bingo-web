@@ -1,15 +1,15 @@
-```javascript
 // ==========================================
-// VAMIOS BINGO WINNER
+// VAMIOS BINGO WINNER SYSTEM
 // ==========================================
-// Winner checking + winner board display
+// Checks Bingo patterns
+// Saves winner to Supabase
+// Stops number calling
+// Displays winner information and board
 // ==========================================
 
-let winnerAlreadyDeclared = false;
-
 
 // ==========================================
-// CHECK MARKED VALUE
+// CHECK IF VALUE IS MARKED
 // ==========================================
 
 function isMarked(value) {
@@ -18,10 +18,11 @@ function isMarked(value) {
         return true;
     }
 
-    return calledNumbers.includes(
-        Number(value)
-    );
+    const number = Number(value);
 
+    return calledNumbers.some(
+        n => Number(n) === number
+    );
 }
 
 
@@ -38,7 +39,9 @@ function checkHorizontal() {
         for (let col = 0; col < 5; col++) {
 
             const value =
-                playerCard[row * 5 + col];
+                playerCard[
+                    row * 5 + col
+                ];
 
             if (!isMarked(value)) {
                 complete = false;
@@ -70,7 +73,9 @@ function checkVertical() {
         for (let row = 0; row < 5; row++) {
 
             const value =
-                playerCard[row * 5 + col];
+                playerCard[
+                    row * 5 + col
+                ];
 
             if (!isMarked(value)) {
                 complete = false;
@@ -98,7 +103,9 @@ function checkDiagonal() {
     for (let i = 0; i < 5; i++) {
 
         const value =
-            playerCard[i * 5 + i];
+            playerCard[
+                i * 5 + i
+            ];
 
         if (!isMarked(value)) {
             return false;
@@ -119,7 +126,9 @@ function checkReverseDiagonal() {
     for (let i = 0; i < 5; i++) {
 
         const value =
-            playerCard[i * 5 + (4 - i)];
+            playerCard[
+                i * 5 + (4 - i)
+            ];
 
         if (!isMarked(value)) {
             return false;
@@ -146,30 +155,162 @@ function checkFourCorners() {
 
     ];
 
-    for (let i = 0; i < corners.length; i++) {
-
-        if (!isMarked(corners[i])) {
-            return false;
-        }
-
-    }
-
-    return true;
+    return corners.every(
+        value => isMarked(value)
+    );
 }
 
 
 // ==========================================
-// CREATE WINNER BOARD
+// GET WINNING BOARD NUMBER
 // ==========================================
 
-function displayWinnerBoard() {
+function getBoardNumber() {
 
-    const boardContainer =
+    const boardNumber =
+        localStorage.getItem(
+            "selectedBoardNumber"
+        );
+
+    if (boardNumber) {
+        return boardNumber;
+    }
+
+    return "?";
+}
+
+
+// ==========================================
+// CALCULATE PRIZE
+// ==========================================
+
+async function calculatePrize() {
+
+    const roomId =
+        localStorage.getItem(
+            "roomId"
+        );
+
+    if (!roomId) {
+        return 0;
+    }
+
+
+    const {
+        data: room,
+        error: roomError
+    } =
+        await supabase
+            .from("rooms")
+            .select("entry_fee")
+            .eq("id", roomId)
+            .single();
+
+
+    if (roomError) {
+
+        console.error(
+            "PRIZE ROOM ERROR:",
+            roomError
+        );
+
+        return 0;
+    }
+
+
+    const gameId =
+        localStorage.getItem(
+            "gameId"
+        );
+
+    if (!gameId) {
+        return 0;
+    }
+
+
+    const {
+        data: players,
+        error: playersError
+    } =
+        await supabase
+            .from("game_players")
+            .select("id")
+            .eq(
+                "game_id",
+                gameId
+            );
+
+
+    if (playersError) {
+
+        console.error(
+            "PRIZE PLAYER ERROR:",
+            playersError
+        );
+
+        return 0;
+    }
+
+
+    const playerCount =
+        players?.length || 0;
+
+
+    const entryFee =
+        Number(room.entry_fee) || 0;
+
+
+    // 80% goes to winner
+    const prize =
+        playerCount *
+        entryFee *
+        0.80;
+
+
+    return prize;
+}
+
+
+// ==========================================
+// DISPLAY WINNER BOARD
+// ==========================================
+
+function showWinnerBoard() {
+
+    const winnerCard =
+        document.querySelector(
+            ".winner-card"
+        );
+
+    if (!winnerCard) {
+
+        console.error(
+            "WINNER CARD NOT FOUND"
+        );
+
+        return;
+    }
+
+
+    // Remove old board if it exists
+
+    const oldBoard =
         document.getElementById(
             "winnerBoard"
         );
 
-    if (!boardContainer) {
+    if (oldBoard) {
+        oldBoard.remove();
+    }
+
+
+    const savedBoard =
+        localStorage.getItem(
+            "selectedBoard"
+        );
+
+
+    if (!savedBoard) {
 
         console.error(
             "WINNER BOARD NOT FOUND"
@@ -179,71 +320,272 @@ function displayWinnerBoard() {
     }
 
 
-    boardContainer.innerHTML = "";
+    let board;
 
+    try {
 
-    if (
-        !Array.isArray(playerCard) ||
-        playerCard.length !== 25
-    ) {
+        board =
+            JSON.parse(
+                savedBoard
+            );
+
+    } catch (error) {
 
         console.error(
-            "INVALID PLAYER CARD:",
-            playerCard
+            "WINNER BOARD JSON ERROR:",
+            error
         );
 
         return;
     }
 
 
-    for (let i = 0; i < 25; i++) {
+    if (
+        !Array.isArray(board) ||
+        board.length !== 5
+    ) {
+
+        console.error(
+            "INVALID WINNER BOARD:",
+            board
+        );
+
+        return;
+    }
+
+
+    // ======================================
+    // BOARD CONTAINER
+    // ======================================
+
+    const wrapper =
+        document.createElement(
+            "div"
+        );
+
+    wrapper.id =
+        "winnerBoard";
+
+    wrapper.style.marginTop =
+        "20px";
+
+
+    // ======================================
+    // BINGO HEADER
+    // ======================================
+
+    const header =
+        document.createElement(
+            "div"
+        );
+
+    header.style.display =
+        "grid";
+
+    header.style.gridTemplateColumns =
+        "repeat(5, 1fr)";
+
+    header.style.gap =
+        "4px";
+
+    header.style.maxWidth =
+        "320px";
+
+    header.style.margin =
+        "0 auto 5px";
+
+
+    [
+        "B",
+        "I",
+        "N",
+        "G",
+        "O"
+    ].forEach(letter => {
 
         const cell =
             document.createElement(
                 "div"
             );
 
+        cell.textContent =
+            letter;
 
-        cell.className =
-            "bingo-cell";
+        cell.style.textAlign =
+            "center";
 
+        cell.style.fontWeight =
+            "bold";
 
-        const value =
-            playerCard[i];
+        cell.style.padding =
+            "6px";
 
+        header.appendChild(
+            cell
+        );
 
-        if (value === "FREE") {
-
-            cell.textContent =
-                "FREE";
-
-            cell.classList.add(
-                "marked"
-            );
-
-        } else {
-
-            cell.textContent =
-                value;
+    });
 
 
-            if (
-                calledNumbers.includes(
-                    Number(value)
-                )
-            ) {
+    wrapper.appendChild(
+        header
+    );
 
-                cell.classList.add(
-                    "marked"
+
+    // ======================================
+    // BOARD GRID
+    // ======================================
+
+    const grid =
+        document.createElement(
+            "div"
+        );
+
+    grid.style.display =
+        "grid";
+
+    grid.style.gridTemplateColumns =
+        "repeat(5, 1fr)";
+
+    grid.style.gap =
+        "4px";
+
+    grid.style.maxWidth =
+        "320px";
+
+    grid.style.margin =
+        "0 auto";
+
+
+    // ======================================
+    // CREATE BOARD CELLS
+    // ======================================
+
+    for (
+        let row = 0;
+        row < 5;
+        row++
+    ) {
+
+        for (
+            let col = 0;
+            col < 5;
+            col++
+        ) {
+
+            const value =
+                board[row][col];
+
+
+            const cell =
+                document.createElement(
+                    "div"
                 );
+
+
+            const isFree =
+                row === 2 &&
+                col === 2;
+
+
+            const number =
+                Number(value);
+
+
+            const marked =
+                isFree ||
+                (
+                    calledNumbers &&
+                    calledNumbers.some(
+                        n =>
+                            Number(n) ===
+                            number
+                    )
+                );
+
+
+            cell.textContent =
+                isFree
+                    ? "FREE"
+                    : number;
+
+
+            cell.style.border =
+                "1px solid #ccc";
+
+            cell.style.borderRadius =
+                "6px";
+
+            cell.style.padding =
+                "10px 4px";
+
+            cell.style.textAlign =
+                "center";
+
+            cell.style.fontWeight =
+                "bold";
+
+            cell.style.minHeight =
+                "20px";
+
+
+            if (marked) {
+
+                cell.style.background =
+                    "#22c55e";
+
+                cell.style.color =
+                    "white";
+
+            } else {
+
+                cell.style.background =
+                    "#f1f5f9";
+
+                cell.style.color =
+                    "#111827";
 
             }
 
+
+            grid.appendChild(
+                cell
+            );
+
         }
 
+    }
 
-        boardContainer.appendChild(
-            cell
+
+    wrapper.appendChild(
+        grid
+    );
+
+
+    // ======================================
+    // INSERT AFTER WINNER MESSAGE
+    // ======================================
+
+    const prizeElement =
+        document.getElementById(
+            "winnerPrize"
+        );
+
+
+    if (
+        prizeElement &&
+        prizeElement.parentNode
+    ) {
+
+        prizeElement.parentNode.insertBefore(
+            wrapper,
+            prizeElement.nextSibling
+        );
+
+    } else {
+
+        winnerCard.appendChild(
+            wrapper
         );
 
     }
@@ -260,36 +602,53 @@ function showWinner(
     prize
 ) {
 
-    const winnerScreen =
-        document.getElementById(
-            "winnerScreen"
+    // ======================================
+    // STOP CALLING
+    // ======================================
+
+    if (
+        typeof stopCalling ===
+        "function"
+    ) {
+
+        stopCalling();
+
+        console.log(
+            "NUMBER CALLING STOPPED - WINNER"
         );
 
-
-    if (!winnerScreen) {
-
-        console.error(
-            "WINNER SCREEN NOT FOUND"
-        );
-
-        return;
     }
 
 
-    const patternElement =
+    // ======================================
+    // BOARD NUMBER
+    // ======================================
+
+    const boardNumber =
+        getBoardNumber();
+
+
+    // ======================================
+    // WINNER MESSAGE
+    // ======================================
+
+    const message =
         document.getElementById(
-            "winnerPattern"
+            "winnerMessage"
         );
 
 
-    if (patternElement) {
+    if (message) {
 
-        patternElement.textContent =
-            "Winning Pattern: " +
-            pattern;
+        message.textContent =
+            `Board #${boardNumber} wins with ${pattern}!`;
 
     }
 
+
+    // ======================================
+    // PRIZE
+    // ======================================
 
     const prizeElement =
         document.getElementById(
@@ -300,62 +659,21 @@ function showWinner(
     if (prizeElement) {
 
         prizeElement.textContent =
-            Number(prize).toFixed(2) +
-            " ETB";
+            `${Number(prize).toFixed(2)} ETB`;
 
     }
 
 
-    const messageElement =
-        document.getElementById(
-            "winnerMessage"
-        );
+    // ======================================
+    // SHOW WINNER BOARD
+    // ======================================
+
+    showWinnerBoard();
 
 
-    if (messageElement) {
-
-        messageElement.textContent =
-            "Congratulations! You are the winner.";
-
-    }
-
-
-    const boardNumberElement =
-        document.getElementById(
-            "winnerBoardNumber"
-        );
-
-
-    const boardNumber =
-        localStorage.getItem(
-            "selectedBoardNumber"
-        );
-
-
-    if (boardNumberElement) {
-
-        if (boardNumber) {
-
-            boardNumberElement.textContent =
-                "Board #" +
-                boardNumber;
-
-        } else {
-
-            boardNumberElement.textContent =
-                "Winning Board";
-
-        }
-
-    }
-
-
-    // Display the actual winning board
-
-    displayWinnerBoard();
-
-
-    // Show winner screen
+    // ======================================
+    // SHOW WINNER SCREEN
+    // ======================================
 
     if (
         typeof showWinnerScreen ===
@@ -366,24 +684,51 @@ function showWinner(
 
     } else {
 
-        winnerScreen.classList.remove(
-            "hidden"
-        );
+        const gameScreen =
+            document.getElementById(
+                "gameScreen"
+            );
+
+        const winnerScreen =
+            document.getElementById(
+                "winnerScreen"
+            );
+
+
+        if (gameScreen) {
+
+            gameScreen.classList.add(
+                "hidden"
+            );
+
+        }
+
+
+        if (winnerScreen) {
+
+            winnerScreen.classList.remove(
+                "hidden"
+            );
+
+        }
 
     }
 
 
     console.log(
         "WINNER DISPLAYED:",
-        pattern,
-        prize
+        {
+            boardNumber,
+            pattern,
+            prize
+        }
     );
 
 }
 
 
 // ==========================================
-// SAVE WINNER
+// SAVE WINNER TO SUPABASE
 // ==========================================
 
 async function saveWinner(
@@ -408,23 +753,25 @@ async function saveWinner(
         );
 
 
-    if (
-        !gameId ||
-        !roomId ||
-        !userId
-    ) {
-
-        console.error(
-            "WINNER INFORMATION MISSING",
-            {
-                gameId: gameId,
-                roomId: roomId,
-                userId: userId
-            }
-        );
+    if (!gameId) {
 
         alert(
-            "Winner information is missing."
+            "Game ID is missing."
+        );
+
+        return;
+
+    }
+
+
+    if (!userId) {
+
+        alert(
+            "User information is missing."
+        );
+
+        console.error(
+            "USER ID MISSING"
         );
 
         return;
@@ -438,12 +785,12 @@ async function saveWinner(
 
     const {
         data: existingGame,
-        error: gameLoadError
+        error: existingError
     } =
         await supabase
             .from("games")
             .select(
-                "winner_user_id"
+                "winner_user_id,status"
             )
             .eq(
                 "id",
@@ -452,15 +799,15 @@ async function saveWinner(
             .single();
 
 
-    if (gameLoadError) {
+    if (existingError) {
 
         console.error(
-            "WINNER GAME LOAD ERROR:",
-            gameLoadError
+            "WINNER CHECK ERROR:",
+            existingError
         );
 
         alert(
-            "Unable to check winner."
+            "Could not check winner."
         );
 
         return;
@@ -473,8 +820,18 @@ async function saveWinner(
         existingGame.winner_user_id
     ) {
 
-        winnerAlreadyDeclared =
-            true;
+        // Stop caller even if another player
+        // already won.
+
+        if (
+            typeof stopCalling ===
+            "function"
+        ) {
+
+            stopCalling();
+
+        }
+
 
         alert(
             "Winner already declared."
@@ -486,94 +843,19 @@ async function saveWinner(
 
 
     // ======================================
-    // LOAD ROOM
+    // CALCULATE PRIZE
+    // ======================================
+
+    let prize =
+        await calculatePrize();
+
+
+    // ======================================
+    // DECLARE WINNER
     // ======================================
 
     const {
-        data: room,
-        error: roomError
-    } =
-        await supabase
-            .from("rooms")
-            .select(
-                "entry_fee"
-            )
-            .eq(
-                "id",
-                roomId
-            )
-            .single();
-
-
-    if (roomError || !room) {
-
-        console.error(
-            "ROOM LOAD ERROR:",
-            roomError
-        );
-
-        alert(
-            "Unable to calculate prize."
-        );
-
-        return;
-
-    }
-
-
-    // ======================================
-    // LOAD PLAYERS
-    // ======================================
-
-    const {
-        data: players,
-        error: playersError
-    } =
-        await supabase
-            .from("game_players")
-            .select(
-                "id"
-            )
-            .eq(
-                "game_id",
-                gameId
-            );
-
-
-    if (playersError) {
-
-        console.error(
-            "PLAYERS LOAD ERROR:",
-            playersError
-        );
-
-        alert(
-            "Unable to calculate prize."
-        );
-
-        return;
-
-    }
-
-
-    const totalPlayers =
-        players
-            ? players.length
-            : 0;
-
-
-    const prize =
-        totalPlayers *
-        Number(room.entry_fee) *
-        0.80;
-
-
-    // ======================================
-    // SAVE WINNER
-    // ======================================
-
-    const {
-        error: saveError
+        error: updateError
     } =
         await supabase
             .from("games")
@@ -583,7 +865,7 @@ async function saveWinner(
                     "finished",
 
                 winner_user_id:
-                    userId,
+                    Number(userId),
 
                 finished_at:
                     new Date().toISOString()
@@ -592,18 +874,24 @@ async function saveWinner(
             .eq(
                 "id",
                 gameId
+            )
+            .is(
+                "winner_user_id",
+                null
             );
 
 
-    if (saveError) {
+    if (updateError) {
 
         console.error(
-            "SAVE WINNER ERROR:",
-            saveError
+            "WINNER SAVE ERROR:",
+            updateError
         );
 
+
         alert(
-            "Could not save winner."
+            "Could not declare winner:\n\n" +
+            updateError.message
         );
 
         return;
@@ -612,7 +900,7 @@ async function saveWinner(
 
 
     // ======================================
-    // STOP NUMBER CALLING
+    // STOP CALLER
     // ======================================
 
     if (
@@ -626,7 +914,7 @@ async function saveWinner(
 
 
     // ======================================
-    // SHOW WINNER
+    // DISPLAY WINNER
     // ======================================
 
     showWinner(
@@ -637,9 +925,11 @@ async function saveWinner(
 
     console.log(
         "WINNER DECLARED:",
-        userId,
-        pattern,
-        prize
+        {
+            userId,
+            pattern,
+            prize
+        }
     );
 
 }
@@ -656,10 +946,20 @@ async function checkWinner() {
     );
 
 
-    if (winnerAlreadyDeclared) {
+    // ======================================
+    // MAKE SURE GAME IS ACTIVE
+    // ======================================
+
+    const gameId =
+        localStorage.getItem(
+            "gameId"
+        );
+
+
+    if (!gameId) {
 
         alert(
-            "Winner already declared."
+            "Game information is missing."
         );
 
         return;
@@ -667,58 +967,66 @@ async function checkWinner() {
     }
 
 
-    if (
-        !Array.isArray(playerCard) ||
-        playerCard.length !== 25
-    ) {
-
-        alert(
-            "Your Bingo board is not ready."
-        );
-
-        return;
-
-    }
-
+    // ======================================
+    // CHECK PATTERNS
+    // ======================================
 
     let pattern = null;
 
 
-    if (checkHorizontal()) {
+    if (
+        checkHorizontal()
+    ) {
 
         pattern =
             "Horizontal";
 
     }
 
-    else if (checkVertical()) {
+
+    else if (
+        checkVertical()
+    ) {
 
         pattern =
             "Vertical";
 
     }
 
-    else if (checkDiagonal()) {
+
+    else if (
+        checkDiagonal()
+    ) {
 
         pattern =
             "Diagonal";
 
     }
 
-    else if (checkReverseDiagonal()) {
+
+    else if (
+        checkReverseDiagonal()
+    ) {
 
         pattern =
             "Reverse Diagonal";
 
     }
 
-    else if (checkFourCorners()) {
+
+    else if (
+        checkFourCorners()
+    ) {
 
         pattern =
             "Four Corners";
 
     }
 
+
+    // ======================================
+    // NO BINGO
+    // ======================================
 
     if (!pattern) {
 
@@ -736,6 +1044,10 @@ async function checkWinner() {
         pattern
     );
 
+
+    // ======================================
+    // SAVE WINNER
+    // ======================================
 
     await saveWinner(
         pattern
@@ -766,6 +1078,8 @@ document.addEventListener(
         button.onclick =
             function () {
 
+                // Stop caller
+
                 if (
                     typeof stopCalling ===
                     "function"
@@ -776,12 +1090,45 @@ document.addEventListener(
                 }
 
 
+                // Remove game state
+
+                localStorage.removeItem(
+                    "gameId"
+                );
+
+                localStorage.removeItem(
+                    "roomId"
+                );
+
+                localStorage.removeItem(
+                    "selectedBoard"
+                );
+
+                localStorage.removeItem(
+                    "selectedBoardNumber"
+                );
+
+                localStorage.removeItem(
+                    "isHost"
+                );
+
+
+                window.vamiosGameStarted =
+                    false;
+
+
+                // Return lobby
+
                 if (
                     typeof showLobby ===
                     "function"
                 ) {
 
                     showLobby();
+
+                } else {
+
+                    location.reload();
 
                 }
 
@@ -790,6 +1137,10 @@ document.addEventListener(
     }
 );
 
+
+// ==========================================
+// WINNER JS LOADED
+// ==========================================
 
 console.log(
     "WINNER JS LOADED"
