@@ -747,11 +747,17 @@ async function saveWinner(
         );
 
 
-    const userId =
-        localStorage.getItem(
-            "userId"
-        );
+    let currentUser = null;
 
+if (typeof getCurrentUser === "function") {
+
+    currentUser =
+        await getCurrentUser();
+
+}
+
+const userId =
+    currentUser?.id || null;
 
     if (!gameId) {
 
