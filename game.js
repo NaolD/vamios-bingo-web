@@ -568,9 +568,9 @@ async function subscribeGame(gameId) {
 // CALL NEXT NUMBER
 // ==========================================
 
-async function callNextNumber(
-    gameId
-) {
+async function callNextNumber(gameId) {
+
+    console.log("CHECKING GAME FOR NEXT CALL:", gameId);
 
     // ======================================
     // GET CURRENT GAME STATE
@@ -579,17 +579,16 @@ async function callNextNumber(
     const {
         data: game,
         error
-    } =
-        await supabase
-            .from("games")
-            .select(
-                "called_numbers,current_number,status"
-            )
-            .eq(
-                "id",
-                gameId
-            )
-            .single();
+    } = await supabase
+        .from("games")
+        .select(
+            "called_numbers,current_number,status,winner_user_id"
+        )
+        .eq(
+            "id",
+            gameId
+        )
+        .single();
 
 
     if (error) {
@@ -603,10 +602,31 @@ async function callNextNumber(
     }
 
 
+    // ======================================
+    // STOP IF GAME IS FINISHED
+    // ======================================
+
+    if (
+        game.status === "finished" ||
+        game.winner_user_id
+    ) {
+
+        console.log(
+            "GAME FINISHED - STOPPING NUMBER CALLER"
+        );
+
+        stopCalling();
+
+        return;
+    }
+
+
+    // ======================================
+    // GET CALLED NUMBERS
+    // ======================================
+
     let called =
-        Array.isArray(
-            game.called_numbers
-        )
+        Array.isArray(game.called_numbers)
             ? game.called_numbers
             : [];
 
@@ -616,7 +636,7 @@ async function callNextNumber(
     ) {
 
         console.log(
-            "ALL NUMBERS CALLED"
+            "ALL 75 NUMBERS CALLED"
         );
 
         stopCalling();
@@ -631,7 +651,6 @@ async function callNextNumber(
 
     const available = [];
 
-
     for (
         let number = 1;
         number <= 75;
@@ -642,9 +661,7 @@ async function callNextNumber(
             !called.includes(number)
         ) {
 
-            available.push(
-                number
-            );
+            available.push(number);
 
         }
 
@@ -693,25 +710,24 @@ async function callNextNumber(
 
     const {
         error: updateError
-    } =
-        await supabase
-            .from("games")
-            .update({
+    } = await supabase
+        .from("games")
+        .update({
 
-                current_number:
-                    next,
+            current_number:
+                next,
 
-                called_numbers:
-                    called,
+            called_numbers:
+                called,
 
-                status:
-                    "calling"
+            status:
+                "calling"
 
-            })
-            .eq(
-                "id",
-                gameId
-            );
+        })
+        .eq(
+            "id",
+            gameId
+        );
 
 
     if (updateError) {
@@ -739,14 +755,11 @@ async function callNextNumber(
 
 }
 
-
 // ==========================================
 // START CALLING
 // ==========================================
 
-async function startCalling(
-    gameId
-) {
+async function startCalling(gameId) {
 
     console.log(
         "STARTING CALLER:",
@@ -758,19 +771,46 @@ async function startCalling(
 
 
     // First call immediately
-
     await callNextNumber(
         gameId
     );
 
 
-    // Then every 5 seconds
+    // Do not start timer if game already finished
+    const {
+        data: currentGame
+    } = await supabase
+        .from("games")
+        .select(
+            "status,winner_user_id"
+        )
+        .eq(
+            "id",
+            gameId
+        )
+        .single();
 
+
+    if (
+        !currentGame ||
+        currentGame.status === "finished" ||
+        currentGame.winner_user_id
+    ) {
+
+        console.log(
+            "GAME ALREADY FINISHED - NO CALL TIMER"
+        );
+
+        return;
+    }
+
+
+    // Every 5 seconds
     callTimer =
         setInterval(
-            () => {
+            async () => {
 
-                callNextNumber(
+                await callNextNumber(
                     gameId
                 );
 
@@ -784,7 +824,6 @@ async function startCalling(
     );
 
 }
-
 
 // ==========================================
 // STOP CALLING

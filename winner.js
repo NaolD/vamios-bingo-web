@@ -522,6 +522,18 @@ async function saveWinner(
 
     }
 
+// Stop number calling immediately
+if (
+    typeof stopCalling === "function"
+) {
+
+    stopCalling();
+
+    console.log(
+        "CALLING STOPPED - WINNER DECLARED"
+    );
+
+}
 
     // ======================================
     // SHOW WINNER
