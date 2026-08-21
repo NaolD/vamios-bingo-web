@@ -508,63 +508,101 @@
 
 
 
-    <!-- ================================================= -->
-    <!-- WINNER -->
-    <!-- ================================================= -->
+   ```html
+<!-- ================================================= -->
+<!-- WINNER -->
+<!-- ================================================= -->
 
-    <section
-        id="winnerScreen"
-        class="screen hidden"
-    >
+<section
+    id="winnerScreen"
+    class="screen hidden"
+>
 
-        <div class="winner-card">
+    <div class="winner-card">
 
-            <div class="winner-icon">
-                🏆
-            </div>
+        <div class="winner-icon">
+            🏆
+        </div>
+
+        <div class="winner-title">
+            BINGO!
+        </div>
+
+        <div
+            id="winnerMessage"
+            class="winner-message"
+        >
+            Congratulations!
+        </div>
+
+        <!-- WINNER BOARD NUMBER -->
+
+        <div
+            id="winnerBoardNumber"
+            class="winner-message"
+        >
+            Board
+        </div>
 
 
-            <div class="winner-title">
-                BINGO!
+        <!-- WINNING PATTERN -->
+
+        <div
+            id="winnerPattern"
+            class="winner-message"
+        >
+            Winning Pattern
+        </div>
+
+
+        <!-- WINNER BOARD -->
+
+        <div class="game-board-wrapper">
+
+            <div class="bingo-header">
+
+                <span>B</span>
+                <span>I</span>
+                <span>N</span>
+                <span>G</span>
+                <span>O</span>
+
             </div>
 
 
             <div
-                id="winnerMessage"
-                class="winner-message"
-            >
-                Congratulations!
-            </div>
-
-
-            <div class="winner-prize-label">
-                Prize
-            </div>
-
-
-            <div
-                id="winnerPrize"
-                class="winner-prize"
-            >
-                0.00 ETB
-            </div>
-
-
-            <button
-                id="returnLobbyBtn"
-                class="primary-button"
-                type="button"
-            >
-                RETURN TO LOBBY
-            </button>
+                id="winnerBoard"
+                class="bingo-grid game-grid"
+            ></div>
 
         </div>
 
-    </section>
+
+        <!-- PRIZE -->
+
+        <div class="winner-prize-label">
+            Prize
+        </div>
+
+        <div
+            id="winnerPrize"
+            class="winner-prize"
+        >
+            0.00 ETB
+        </div>
 
 
-</div>
+        <button
+            id="returnLobbyBtn"
+            class="primary-button"
+            type="button"
+        >
+            RETURN TO LOBBY
+        </button>
 
+    </div>
+
+</section>
 
 <!-- ================================================= -->
 <!-- JAVASCRIPT FILES -->

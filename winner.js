@@ -1,10 +1,11 @@
+```javascript
 // ==========================================
 // VAMIOS BINGO WINNER SYSTEM
 // ==========================================
 
 
 // ==========================================
-// CHECK MARKED NUMBER
+// CHECK IF A VALUE IS MARKED
 // ==========================================
 
 function isMarked(value) {
@@ -16,7 +17,6 @@ function isMarked(value) {
     return calledNumbers.includes(
         Number(value)
     );
-
 }
 
 
@@ -26,40 +26,28 @@ function isMarked(value) {
 
 function checkHorizontal() {
 
-    for (
-        let row = 0;
-        row < 5;
-        row++
-    ) {
+    for (let row = 0; row < 5; row++) {
 
-        let complete = true;
+        let ok = true;
 
-        for (
-            let col = 0;
-            col < 5;
-            col++
-        ) {
+        for (let col = 0; col < 5; col++) {
 
             const value =
-                playerCard[
-                    row * 5 + col
-                ];
+                playerCard[row * 5 + col];
 
             if (!isMarked(value)) {
-                complete = false;
+                ok = false;
                 break;
             }
 
         }
 
-        if (complete) {
+        if (ok) {
             return true;
         }
-
     }
 
     return false;
-
 }
 
 
@@ -69,40 +57,28 @@ function checkHorizontal() {
 
 function checkVertical() {
 
-    for (
-        let col = 0;
-        col < 5;
-        col++
-    ) {
+    for (let col = 0; col < 5; col++) {
 
-        let complete = true;
+        let ok = true;
 
-        for (
-            let row = 0;
-            row < 5;
-            row++
-        ) {
+        for (let row = 0; row < 5; row++) {
 
             const value =
-                playerCard[
-                    row * 5 + col
-                ];
+                playerCard[row * 5 + col];
 
             if (!isMarked(value)) {
-                complete = false;
+                ok = false;
                 break;
             }
 
         }
 
-        if (complete) {
+        if (ok) {
             return true;
         }
-
     }
 
     return false;
-
 }
 
 
@@ -112,25 +88,17 @@ function checkVertical() {
 
 function checkDiagonal() {
 
-    for (
-        let i = 0;
-        i < 5;
-        i++
-    ) {
+    for (let i = 0; i < 5; i++) {
 
         const value =
-            playerCard[
-                i * 5 + i
-            ];
+            playerCard[i * 5 + i];
 
         if (!isMarked(value)) {
             return false;
         }
-
     }
 
     return true;
-
 }
 
 
@@ -140,25 +108,17 @@ function checkDiagonal() {
 
 function checkReverseDiagonal() {
 
-    for (
-        let i = 0;
-        i < 5;
-        i++
-    ) {
+    for (let i = 0; i < 5; i++) {
 
         const value =
-            playerCard[
-                i * 5 + (4 - i)
-            ];
+            playerCard[i * 5 + (4 - i)];
 
         if (!isMarked(value)) {
             return false;
         }
-
     }
 
     return true;
-
 }
 
 
@@ -180,46 +140,276 @@ function checkFourCorners() {
     return corners.every(
         value => isMarked(value)
     );
+}
+
+
+// ==========================================
+// GET WINNING CELLS
+// ==========================================
+
+function getWinningCells(pattern) {
+
+    const cells = [];
+
+    if (pattern === "Horizontal") {
+
+        for (let row = 0; row < 5; row++) {
+
+            let ok = true;
+
+            for (let col = 0; col < 5; col++) {
+
+                if (
+                    !isMarked(
+                        playerCard[row * 5 + col]
+                    )
+                ) {
+                    ok = false;
+                    break;
+                }
+            }
+
+            if (ok) {
+
+                for (let col = 0; col < 5; col++) {
+
+                    cells.push(
+                        row * 5 + col
+                    );
+
+                }
+
+                return cells;
+            }
+        }
+    }
+
+
+    if (pattern === "Vertical") {
+
+        for (let col = 0; col < 5; col++) {
+
+            let ok = true;
+
+            for (let row = 0; row < 5; row++) {
+
+                if (
+                    !isMarked(
+                        playerCard[row * 5 + col]
+                    )
+                ) {
+                    ok = false;
+                    break;
+                }
+            }
+
+            if (ok) {
+
+                for (let row = 0; row < 5; row++) {
+
+                    cells.push(
+                        row * 5 + col
+                    );
+
+                }
+
+                return cells;
+            }
+        }
+    }
+
+
+    if (pattern === "Diagonal") {
+
+        for (let i = 0; i < 5; i++) {
+
+            cells.push(
+                i * 5 + i
+            );
+
+        }
+
+        return cells;
+    }
+
+
+    if (pattern === "Reverse Diagonal") {
+
+        for (let i = 0; i < 5; i++) {
+
+            cells.push(
+                i * 5 + (4 - i)
+            );
+
+        }
+
+        return cells;
+    }
+
+
+    if (pattern === "Four Corners") {
+
+        return [
+            0,
+            4,
+            20,
+            24
+        ];
+    }
+
+
+    return cells;
+}
+
+
+// ==========================================
+// SHOW WINNER BOARD
+// ==========================================
+
+function showWinnerBoard(
+    board,
+    boardNumber,
+    pattern
+) {
+
+    const container =
+        document.getElementById(
+            "winnerBoard"
+        );
+
+    if (!container) {
+
+        console.error(
+            "WINNER BOARD ELEMENT NOT FOUND"
+        );
+
+        return;
+    }
+
+
+    container.innerHTML = "";
+
+
+    if (
+        !Array.isArray(board) ||
+        board.length !== 5
+    ) {
+
+        console.error(
+            "INVALID WINNER BOARD:",
+            board
+        );
+
+        return;
+    }
+
+
+    const winningCells =
+        getWinningCells(pattern);
+
+
+    for (let row = 0; row < 5; row++) {
+
+        for (let col = 0; col < 5; col++) {
+
+            const cell =
+                document.createElement(
+                    "div"
+                );
+
+
+            cell.className =
+                "bingo-cell";
+
+
+            const index =
+                row * 5 + col;
+
+
+            const value =
+                board[row][col];
+
+
+            if (
+                row === 2 &&
+                col === 2
+            ) {
+
+                cell.textContent =
+                    "FREE";
+
+                cell.classList.add(
+                    "marked"
+                );
+
+            } else {
+
+                cell.textContent =
+                    value;
+
+            }
+
+
+            if (
+                winningCells.includes(index)
+            ) {
+
+                cell.classList.add(
+                    "winner-cell"
+                );
+
+            }
+
+
+            container.appendChild(
+                cell
+            );
+
+        }
+    }
+
+
+    const boardNumberElement =
+        document.getElementById(
+            "winnerBoardNumber"
+        );
+
+
+    if (boardNumberElement) {
+
+        boardNumberElement.textContent =
+            `Board #${boardNumber}`;
+
+    }
 
 }
 
 
 // ==========================================
-// SHOW WINNER
+// SHOW WINNER INFORMATION
 // ==========================================
 
 function showWinner(
     pattern,
-    prize
+    prize,
+    board,
+    boardNumber
 ) {
 
-    console.log(
-        "SHOW WINNER:",
-        pattern,
-        prize
-    );
-
-
-    const winnerBox =
+    const box =
         document.getElementById(
             "winnerBox"
         );
 
 
-    if (!winnerBox) {
+    if (!box) {
 
         console.error(
             "WINNER BOX NOT FOUND"
         );
 
         return;
-
     }
-
-
-    winnerBox.classList.remove(
-        "hidden"
-    );
 
 
     const patternElement =
@@ -231,8 +421,7 @@ function showWinner(
     if (patternElement) {
 
         patternElement.textContent =
-            "Winning Pattern: " +
-            pattern;
+            `Winning Pattern: ${pattern}`;
 
     }
 
@@ -246,11 +435,21 @@ function showWinner(
     if (prizeElement) {
 
         prizeElement.textContent =
-            "Prize: " +
-            Number(prize).toFixed(2) +
-            " ETB";
+            `Prize: ${Number(prize).toFixed(2)} ETB`;
 
     }
+
+
+    showWinnerBoard(
+        board,
+        boardNumber,
+        pattern
+    );
+
+
+    box.classList.remove(
+        "hidden"
+    );
 
 
     if (
@@ -269,15 +468,7 @@ function showWinner(
 // SAVE WINNER
 // ==========================================
 
-async function saveWinner(
-    pattern
-) {
-
-    console.log(
-        "SAVING WINNER:",
-        pattern
-    );
-
+async function saveWinner(pattern) {
 
     const gameId =
         localStorage.getItem(
@@ -291,39 +482,16 @@ async function saveWinner(
         );
 
 
-    let userId =
+    const userId =
         localStorage.getItem(
             "userId"
         );
 
 
-    // ======================================
-    // GET USER ID IF NOT IN LOCAL STORAGE
-    // ======================================
-
-    if (!userId) {
-
-        if (
-            typeof getCurrentUserId ===
-            "function"
-        ) {
-
-            userId =
-                getCurrentUserId();
-
-        }
-
-    }
-
-
-    if (
-        !gameId ||
-        !roomId ||
-        !userId
-    ) {
+    if (!gameId || !roomId || !userId) {
 
         console.error(
-            "WINNER INFORMATION IS MISSING:",
+            "WINNER INFORMATION MISSING:",
             {
                 gameId,
                 roomId,
@@ -336,12 +504,11 @@ async function saveWinner(
         );
 
         return;
-
     }
 
 
     // ======================================
-    // CHECK CURRENT GAME
+    // CHECK WHETHER WINNER ALREADY EXISTS
     // ======================================
 
     const {
@@ -351,7 +518,7 @@ async function saveWinner(
         await supabase
             .from("games")
             .select(
-                "id,status,winner_user_id"
+                "winner_user_id,prize_amount"
             )
             .eq(
                 "id",
@@ -368,26 +535,20 @@ async function saveWinner(
         );
 
         alert(
-            "Could not load game."
+            gameError.message
         );
 
         return;
-
     }
 
 
-    // ======================================
-    // CHECK EXISTING WINNER
-    // ======================================
-
-    if (game.winner_user_id) {
+    if (game?.winner_user_id) {
 
         alert(
             "Winner already declared."
         );
 
         return;
-
     }
 
 
@@ -411,7 +572,7 @@ async function saveWinner(
             .single();
 
 
-    if (roomError) {
+    if (roomError || !room) {
 
         console.error(
             "ROOM LOAD ERROR:",
@@ -419,11 +580,10 @@ async function saveWinner(
         );
 
         alert(
-            "Could not load room."
+            "Unable to load room information."
         );
 
         return;
-
     }
 
 
@@ -437,7 +597,9 @@ async function saveWinner(
     } =
         await supabase
             .from("game_players")
-            .select("id")
+            .select(
+                "id,user_id,board_number,board"
+            )
             .eq(
                 "game_id",
                 gameId
@@ -452,18 +614,15 @@ async function saveWinner(
         );
 
         alert(
-            "Could not load players."
+            playersError.message
         );
 
         return;
-
     }
 
 
     const totalPlayers =
-        players
-            ? players.length
-            : 0;
+        players?.length || 0;
 
 
     // ======================================
@@ -476,10 +635,30 @@ async function saveWinner(
         0.80;
 
 
-    console.log(
-        "PRIZE:",
-        prize
-    );
+    // ======================================
+    // FIND WINNER BOARD
+    // ======================================
+
+    const winnerPlayer =
+        players?.find(
+            player =>
+                String(player.user_id) ===
+                String(userId)
+        );
+
+
+    if (!winnerPlayer) {
+
+        console.error(
+            "WINNER PLAYER NOT FOUND"
+        );
+
+        alert(
+            "Winner board could not be found."
+        );
+
+        return;
+    }
 
 
     // ======================================
@@ -497,7 +676,16 @@ async function saveWinner(
                     "finished",
 
                 winner_user_id:
-                    Number(userId)
+                    userId,
+
+                winner_pattern:
+                    pattern,
+
+                prize_amount:
+                    prize,
+
+                finished_at:
+                    new Date().toISOString()
 
             })
             .eq(
@@ -514,26 +702,26 @@ async function saveWinner(
         );
 
         alert(
-            "Could not save winner:\n\n" +
             updateError.message
         );
 
         return;
+    }
+
+
+    // ======================================
+    // STOP CALLING
+    // ======================================
+
+    if (
+        typeof stopCalling ===
+        "function"
+    ) {
+
+        stopCalling();
 
     }
 
-// Stop number calling immediately
-if (
-    typeof stopCalling === "function"
-) {
-
-    stopCalling();
-
-    console.log(
-        "CALLING STOPPED - WINNER DECLARED"
-    );
-
-}
 
     // ======================================
     // SHOW WINNER
@@ -541,15 +729,21 @@ if (
 
     showWinner(
         pattern,
-        prize
+        prize,
+        winnerPlayer.board,
+        winnerPlayer.board_number
     );
 
 
     console.log(
         "WINNER DECLARED:",
-        userId,
-        pattern,
-        prize
+        {
+            userId,
+            pattern,
+            prize,
+            boardNumber:
+                winnerPlayer.board_number
+        }
     );
 
 }
@@ -566,110 +760,73 @@ async function checkWinner() {
     );
 
 
-    // ======================================
-    // MAKE SURE BOARD EXISTS
-    // ======================================
+    let pattern = null;
+
 
     if (
-        !Array.isArray(playerCard) ||
-        playerCard.length !== 25
+        checkHorizontal()
     ) {
 
-        console.error(
-            "PLAYER CARD NOT READY:",
-            playerCard
-        );
+        pattern =
+            "Horizontal";
+
+    }
+
+    else if (
+        checkVertical()
+    ) {
+
+        pattern =
+            "Vertical";
+
+    }
+
+    else if (
+        checkDiagonal()
+    ) {
+
+        pattern =
+            "Diagonal";
+
+    }
+
+    else if (
+        checkReverseDiagonal()
+    ) {
+
+        pattern =
+            "Reverse Diagonal";
+
+    }
+
+    else if (
+        checkFourCorners()
+    ) {
+
+        pattern =
+            "Four Corners";
+
+    }
+
+
+    if (!pattern) {
 
         alert(
-            "Your Bingo board is not ready."
+            "No Bingo yet!"
         );
 
         return;
-
     }
 
 
-    // ======================================
-    // CHECK HORIZONTAL
-    // ======================================
-
-    if (checkHorizontal()) {
-
-        await saveWinner(
-            "Horizontal"
-        );
-
-        return;
-
-    }
+    console.log(
+        "BINGO FOUND:",
+        pattern
+    );
 
 
-    // ======================================
-    // CHECK VERTICAL
-    // ======================================
-
-    if (checkVertical()) {
-
-        await saveWinner(
-            "Vertical"
-        );
-
-        return;
-
-    }
-
-
-    // ======================================
-    // CHECK DIAGONAL
-    // ======================================
-
-    if (checkDiagonal()) {
-
-        await saveWinner(
-            "Diagonal"
-        );
-
-        return;
-
-    }
-
-
-    // ======================================
-    // CHECK REVERSE DIAGONAL
-    // ======================================
-
-    if (checkReverseDiagonal()) {
-
-        await saveWinner(
-            "Reverse Diagonal"
-        );
-
-        return;
-
-    }
-
-
-    // ======================================
-    // CHECK FOUR CORNERS
-    // ======================================
-
-    if (checkFourCorners()) {
-
-        await saveWinner(
-            "Four Corners"
-        );
-
-        return;
-
-    }
-
-
-    // ======================================
-    // NO BINGO
-    // ======================================
-
-    alert(
-        "No Bingo yet!"
+    await saveWinner(
+        pattern
     );
 
 }
@@ -678,3 +835,4 @@ async function checkWinner() {
 console.log(
     "WINNER JS LOADED"
 );
+```

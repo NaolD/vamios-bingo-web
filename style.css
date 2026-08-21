@@ -1111,3 +1111,20 @@ button:disabled {
     }
 
 }
+
+```css
+/* ==========================================
+   WINNER BOARD
+   ========================================== */
+
+#winnerBoard {
+    margin-top: 15px;
+}
+
+#winnerBoard .winner-cell {
+    border: 3px solid gold;
+    box-shadow: 0 0 12px gold;
+    transform: scale(1.05);
+    font-weight: bold;
+}
+
