@@ -6,7 +6,174 @@
 let boardsEntryFee = 0;
 let selectedBoardNumber = null;
 let selectedBoard = null;
+// ==========================================
+// SHARED BOARD SYNCHRONIZATION
+// ==========================================
 
+let boardSyncChannel = null;
+let takenBoardNumbers = new Set();
+
+
+// ==========================================
+// LOAD TAKEN BOARDS
+// ==========================================
+
+async function loadTakenBoards(gameId) {
+
+    if (!gameId) {
+        return;
+    }
+
+    const {
+        data,
+        error
+    } =
+        await supabase
+            .from("game_players")
+            .select("board_number")
+            .eq(
+                "game_id",
+                gameId
+            );
+
+    if (error) {
+
+        console.error(
+            "TAKEN BOARDS LOAD ERROR:",
+            error
+        );
+
+        return;
+    }
+
+    takenBoardNumbers =
+        new Set(
+            (data || [])
+                .map(
+                    player =>
+                        Number(
+                            player.board_number
+                        )
+                )
+        );
+
+    updateTakenBoardButtons();
+}
+
+
+// ==========================================
+// UPDATE BOARD BUTTONS
+// ==========================================
+
+function updateTakenBoardButtons() {
+
+    document
+        .querySelectorAll(
+            ".board-number"
+        )
+        .forEach(
+            button => {
+
+                const number =
+                    Number(
+                        button.dataset.number
+                    );
+
+                const taken =
+                    takenBoardNumbers.has(
+                        number
+                    );
+
+                const selected =
+                    number ===
+                    selectedBoardNumber;
+
+                button.disabled =
+                    taken &&
+                    !selected;
+
+                button.classList.toggle(
+                    "taken",
+                    taken
+                );
+
+            }
+        );
+
+}
+
+
+// ==========================================
+// START BOARD REALTIME
+// ==========================================
+
+function startBoardRealtime(gameId) {
+
+    if (!gameId) {
+        return;
+    }
+
+    if (boardSyncChannel) {
+
+        supabase.removeChannel(
+            boardSyncChannel
+        );
+
+        boardSyncChannel =
+            null;
+    }
+
+    boardSyncChannel =
+        supabase
+            .channel(
+                "board-sync-" +
+                gameId
+            )
+            .on(
+                "postgres_changes",
+                {
+                    event: "INSERT",
+                    schema: "public",
+                    table: "game_players",
+                    filter:
+                        "game_id=eq." +
+                        gameId
+                },
+                payload => {
+
+                    console.log(
+                        "PLAYER JOINED:",
+                        payload.new
+                    );
+
+                    if (
+                        payload.new &&
+                        payload.new.board_number
+                    ) {
+
+                        takenBoardNumbers.add(
+                            Number(
+                                payload.new.board_number
+                            )
+                        );
+
+                        updateTakenBoardButtons();
+                    }
+
+                }
+            )
+            .subscribe(
+                status => {
+
+                    console.log(
+                        "BOARD REALTIME:",
+                        status
+                    );
+
+                }
+            );
+
+}
 
 // ==========================================
 // INITIALIZE BOARD SCREEN
@@ -165,7 +332,21 @@ function createBoardNumbers() {
 // ==========================================
 
 async function selectBoard(number) {
+    number =
+        Number(number);
 
+    if (
+        takenBoardNumbers.has(number)
+    ) {
+
+        alert(
+            "❌ Board " +
+            number +
+            " is already taken."
+        );
+
+        return;
+    }
     selectedBoardNumber =
         Number(number);
 
@@ -514,17 +695,249 @@ function setupBoardStartButton() {
                 true;
 
             button.textContent =
-                "PAYING...";
+                "CHECKING...";
 
             let payment = null;
-
             let game = null;
+            let room = null;
+            let playerInserted = false;
 
             try {
 
                 // =========================
+                // LOAD ROOM
+                // =========================
+
+                const {
+                    data: loadedRoom,
+                    error: roomError
+                } =
+                    await supabase
+                        .from("rooms")
+                        .select("*")
+                        .eq(
+                            "entry_fee",
+                            fee
+                        )
+                        .single();
+
+                if (
+                    roomError ||
+                    !loadedRoom
+                ) {
+
+                    throw new Error(
+                        roomError?.message ||
+                        "Room not found"
+                    );
+                }
+
+                room =
+                    loadedRoom;
+
+                // =========================
+                // FIND OR CREATE SHARED GAME
+                // =========================
+
+                const {
+                    data: existingGame,
+                    error: existingGameError
+                } =
+                    await supabase
+                        .from("games")
+                        .select("*")
+                        .eq(
+                            "room_id",
+                            room.id
+                        )
+                        .eq(
+                            "status",
+                            "waiting"
+                        )
+                        .order(
+                            "id",
+                            {
+                                ascending: false
+                            }
+                        )
+                        .limit(1)
+                        .maybeSingle();
+
+                if (existingGameError) {
+
+                    throw existingGameError;
+                }
+
+                if (existingGame) {
+
+                    game =
+                        existingGame;
+
+                    console.log(
+                        "JOINING EXISTING GAME:",
+                        game.id
+                    );
+
+                } else {
+
+                    const {
+                        data: createdGame,
+                        error: gameError
+                    } =
+                        await supabase
+                            .from("games")
+                            .insert({
+
+                                room_id:
+                                    room.id,
+
+                                status:
+                                    "waiting"
+
+                            })
+                            .select()
+                            .single();
+
+                    if (gameError) {
+
+                        throw gameError;
+                    }
+
+                    game =
+                        createdGame;
+
+                    console.log(
+                        "CREATED SHARED GAME:",
+                        game.id
+                    );
+                }
+
+                // =========================
+                // SET SHARED 60 SECOND TIMER
+                // ONLY IF NOT ALREADY SET
+                // =========================
+
+                if (!room.next_game_time) {
+
+                    const nextGameTime =
+                        new Date(
+                            Date.now() +
+                            60000
+                        ).toISOString();
+
+                    const {
+                        data: updatedRoom,
+                        error: timerError
+                    } =
+                        await supabase
+                            .from("rooms")
+                            .update({
+
+                                next_game_time:
+                                    nextGameTime
+
+                            })
+                            .eq(
+                                "id",
+                                room.id
+                            )
+                            .is(
+                                "next_game_time",
+                                null
+                            )
+                            .select()
+                            .maybeSingle();
+
+                    if (timerError) {
+
+                        throw timerError;
+                    }
+
+                    if (updatedRoom) {
+
+                        room.next_game_time =
+                            updatedRoom.next_game_time;
+
+                        console.log(
+                            "STARTED SHARED 60 SECOND TIMER:",
+                            room.next_game_time
+                        );
+
+                    } else {
+
+                        const {
+                            data: currentRoom,
+                            error: currentRoomError
+                        } =
+                            await supabase
+                                .from("rooms")
+                                .select(
+                                    "next_game_time"
+                                )
+                                .eq(
+                                    "id",
+                                    room.id
+                                )
+                                .single();
+
+                        if (currentRoomError) {
+
+                            throw currentRoomError;
+                        }
+
+                        room.next_game_time =
+                            currentRoom.next_game_time;
+
+                        console.log(
+                            "USING EXISTING TIMER:",
+                            room.next_game_time
+                        );
+                    }
+                } else {
+
+                    console.log(
+                        "USING EXISTING TIMER:",
+                        room.next_game_time
+                    );
+                }
+
+                // =========================
+                // LOAD TAKEN BOARDS
+                // =========================
+
+                await loadTakenBoards(
+                    game.id
+                );
+
+                startBoardRealtime(
+                    game.id
+                );
+
+                // =========================
+                // CHECK BOARD AVAILABILITY
+                // =========================
+
+                if (
+                    takenBoardNumbers.has(
+                        Number(
+                            selectedBoardNumber
+                        )
+                    )
+                ) {
+
+                    throw new Error(
+                        "Board " +
+                        selectedBoardNumber +
+                        " has already been taken. Please select another board."
+                    );
+                }
+
+                // =========================
                 // PAY ENTRY FEE
                 // =========================
+
+                button.textContent =
+                    "PAYING...";
 
                 payment =
                     await deductEntryFee(
@@ -553,95 +966,27 @@ function setupBoardStartButton() {
                     "JOINING...";
 
                 // =========================
-                // LOAD ROOM
+                // FINAL BOARD CHECK
                 // =========================
 
-                const {
-                    data: room,
-                    error: roomError
-                } =
-                    await supabase
-                        .from("rooms")
-                        .select("*")
-                        .eq(
-                            "entry_fee",
-                            fee
-                        )
-                        .single();
+                await loadTakenBoards(
+                    game.id
+                );
 
                 if (
-                    roomError ||
-                    !room
+                    takenBoardNumbers.has(
+                        Number(
+                            selectedBoardNumber
+                        )
+                    )
                 ) {
 
                     throw new Error(
-                        roomError?.message ||
-                        "Room not found"
+                        "Board " +
+                        selectedBoardNumber +
+                        " was taken by another player. Your entry fee will be refunded."
                     );
                 }
-
-                // =========================
-                // SET 60 SECOND TIMER
-                // =========================
-
-                const nextGameTime =
-                    new Date(
-                        Date.now() +
-                        60000
-                    ).toISOString();
-
-                const {
-                    error: updateError
-                } =
-                    await supabase
-                        .from("rooms")
-                        .update({
-
-                            next_game_time:
-                                nextGameTime
-
-                        })
-                        .eq(
-                            "id",
-                            room.id
-                        );
-
-                if (updateError) {
-
-                    throw updateError;
-
-                }
-
-                // =========================
-                // CREATE GAME
-                // =========================
-
-                const {
-                    data: createdGame,
-                    error: gameError
-                } =
-                    await supabase
-                        .from("games")
-                        .insert({
-
-                            room_id:
-                                room.id,
-
-                            status:
-                                "waiting"
-
-                        })
-                        .select()
-                        .single();
-
-                if (gameError) {
-
-                    throw gameError;
-
-                }
-
-                game =
-                    createdGame;
 
                 // =========================
                 // ADD PLAYER
@@ -673,8 +1018,10 @@ function setupBoardStartButton() {
                 if (playerError) {
 
                     throw playerError;
-
                 }
+
+                playerInserted =
+                    true;
 
                 // =========================
                 // SAVE GAME INFORMATION
@@ -701,11 +1048,11 @@ function setupBoardStartButton() {
 
                 localStorage.setItem(
                     "isHost",
-                    "true"
+                    "false"
                 );
 
                 console.log(
-                    "GAME CREATED:",
+                    "JOINED GAME:",
                     game.id
                 );
 
@@ -734,13 +1081,14 @@ function setupBoardStartButton() {
 
                 // =========================
                 // REFUND IF PAYMENT SUCCEEDED
-                // BUT JOINING FAILED
+                // AND PLAYER WAS NOT INSERTED
                 // =========================
 
                 if (
                     payment &&
                     payment.success &&
-                    payment.transactionId
+                    payment.transactionId &&
+                    !playerInserted
                 ) {
 
                     console.log(
