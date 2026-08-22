@@ -107,15 +107,254 @@ function updateTakenBoardButtons() {
 // START BOARD REALTIME
 // ==========================================
 
-function startBoardRealtime(gameId) {
+async function startBoardRealtime(gameId) {
 
     if (!gameId) {
         return;
     }
 
+    // Remove previous channel
     if (boardSyncChannel) {
 
-        supabase.removeChannel(
+        await supabase.removeChannel(
+            boardSyncChannel
+        );
+
+        boardSyncChannel = null;
+    }
+
+    // Always refresh from database first
+    await loadTakenBoards(
+        gameId
+    );
+
+    console.log(
+        "STARTING BOARD REALTIME:",
+        gameId
+    );
+
+    boardSyncChannel =
+        supabase
+            .channel(
+                "board-sync-" +
+                gameId +
+                "-" +
+                Date.now()
+            )
+            .on(
+                "postgres_changes",
+                {
+                    event: "*",
+                    schema: "public",
+                    table: "game_players",
+                    filter:
+                        "game_id=eq." +
+                        gameId
+                },
+                async payload => {
+
+                    console.log(
+                        "GAME PLAYERS CHANGE:",
+                        payload
+                    );
+
+                    // Reload the complete list instead of
+                    // trusting only the realtime payload.
+                    await loadTakenBoards(
+                        gameId
+                    );
+
+                }
+            )
+            .subscribe(
+                status => {
+
+                    console.log(
+                        "BOARD REALTIME STATUS:",
+                        status
+                    );
+
+                }
+            );
+
+}
+
+// ==========================================
+// BOARD SELECTION REALTIME SYNCHRONIZATION
+// ==========================================
+
+async function startBoardSelectionSync(fee) {
+
+    console.log(
+        "STARTING BOARD SELECTION SYNC:",
+        fee
+    );
+
+    const {
+        data: room,
+        error: roomError
+    } =
+        await supabase
+            .from("rooms")
+            .select("id")
+            .eq(
+                "entry_fee",
+                Number(fee)
+            )
+            .single();
+
+    if (roomError || !room) {
+
+        console.error(
+            "BOARD SYNC ROOM ERROR:",
+            roomError
+        );
+
+        return;
+    }
+
+    const roomId =
+        room.id;
+
+    // --------------------------------------
+    // Find current waiting game
+    // --------------------------------------
+
+    const {
+        data: existingGame,
+        error: gameError
+    } =
+        await supabase
+            .from("games")
+            .select("id")
+            .eq(
+                "room_id",
+                roomId
+            )
+            .eq(
+                "status",
+                "waiting"
+            )
+            .order(
+                "id",
+                {
+                    ascending: false
+                }
+            )
+            .limit(1)
+            .maybeSingle();
+
+    if (gameError) {
+
+        console.error(
+            "BOARD SYNC GAME ERROR:",
+            gameError
+        );
+
+        return;
+    }
+
+    // --------------------------------------
+    // Attach to waiting game
+    // --------------------------------------
+
+    async function attachToGame(gameId) {
+
+        if (!gameId) {
+            return;
+        }
+
+        console.log(
+            "BOARD SYNC ATTACHED TO GAME:",
+            gameId
+        );
+
+        await loadTakenBoards(
+            gameId
+        );
+
+        if (boardSyncChannel) {
+
+            await supabase.removeChannel(
+                boardSyncChannel
+            );
+
+            boardSyncChannel =
+                null;
+        }
+
+        boardSyncChannel =
+            supabase
+                .channel(
+                    "board-selection-sync-" +
+                    gameId
+                )
+                .on(
+                    "postgres_changes",
+                    {
+                        event: "INSERT",
+                        schema: "public",
+                        table: "game_players",
+                        filter:
+                            "game_id=eq." +
+                            gameId
+                    },
+                    payload => {
+
+                        console.log(
+                            "BOARD TAKEN:",
+                            payload.new
+                        );
+
+                        if (
+                            payload.new &&
+                            payload.new.board_number
+                        ) {
+
+                            takenBoardNumbers.add(
+                                Number(
+                                    payload.new.board_number
+                                )
+                            );
+
+                            updateTakenBoardButtons();
+                        }
+
+                    }
+                )
+                .subscribe(
+                    status => {
+
+                        console.log(
+                            "BOARD SELECTION REALTIME:",
+                            status
+                        );
+
+                    }
+                );
+    }
+
+    if (existingGame) {
+
+        await attachToGame(
+            existingGame.id
+        );
+
+        return;
+    }
+
+    // --------------------------------------
+    // No waiting game yet.
+    // Listen for one to be created.
+    // --------------------------------------
+
+    console.log(
+        "NO WAITING GAME YET - LISTENING FOR GAME CREATION"
+    );
+
+    if (boardSyncChannel) {
+
+        await supabase.removeChannel(
             boardSyncChannel
         );
 
@@ -126,38 +365,36 @@ function startBoardRealtime(gameId) {
     boardSyncChannel =
         supabase
             .channel(
-                "board-sync-" +
-                gameId
+                "board-game-sync-" +
+                roomId
             )
             .on(
                 "postgres_changes",
                 {
                     event: "INSERT",
                     schema: "public",
-                    table: "game_players",
+                    table: "games",
                     filter:
-                        "game_id=eq." +
-                        gameId
+                        "room_id=eq." +
+                        roomId
                 },
-                payload => {
-
-                    console.log(
-                        "PLAYER JOINED:",
-                        payload.new
-                    );
+                async payload => {
 
                     if (
                         payload.new &&
-                        payload.new.board_number
+                        payload.new.status ===
+                        "waiting"
                     ) {
 
-                        takenBoardNumbers.add(
-                            Number(
-                                payload.new.board_number
-                            )
+                        console.log(
+                            "NEW WAITING GAME CREATED:",
+                            payload.new.id
                         );
 
-                        updateTakenBoardButtons();
+                        await attachToGame(
+                            payload.new.id
+                        );
+
                     }
 
                 }
@@ -166,18 +403,19 @@ function startBoardRealtime(gameId) {
                 status => {
 
                     console.log(
-                        "BOARD REALTIME:",
+                        "BOARD GAME REALTIME:",
                         status
                     );
 
                 }
             );
-
 }
+
 
 // ==========================================
 // INITIALIZE BOARD SCREEN
 // ==========================================
+
 
 async function initializeBoards(fee) {
 
@@ -250,6 +488,12 @@ async function initializeBoards(fee) {
 
 
     createBoardNumbers();
+
+    // Start synchronization while players
+    // are still choosing their board.
+    await startBoardSelectionSync(
+        boardsEntryFee
+    );
 
 
     console.log(
