@@ -137,7 +137,6 @@ async function deductEntryFee(
     const userId =
         getCurrentUserId();
 
-
     if (!userId) {
 
         console.error(
@@ -150,10 +149,8 @@ async function deductEntryFee(
         };
     }
 
-
     amount =
         Number(amount);
-
 
     if (
         !Number.isFinite(amount) ||
@@ -166,138 +163,87 @@ async function deductEntryFee(
         };
     }
 
-
-    // --------------------------------------
-    // Read current wallet
-    // --------------------------------------
+    // ======================================
+    // ATOMIC DATABASE DEDUCTION
+    // ======================================
 
     const {
-        data: wallet,
-        error: walletError
+        data,
+        error
     } =
-        await supabase
-            .from("wallets")
-            .select("*")
-            .eq("user_id", userId)
-            .single();
+        await supabase.rpc(
+            "deduct_bingo_entry_fee",
+            {
+                p_user_id: userId,
+                p_amount: amount
+            }
+        );
 
-
-    if (walletError) {
+    if (error) {
 
         console.error(
-            "WALLET READ ERROR:",
-            walletError
+            "ENTRY FEE ERROR:",
+            error
         );
+
+        let message =
+            error.message ||
+            "Could not deduct entry fee";
+
+        if (
+            message
+                .toLowerCase()
+                .includes("insufficient balance")
+        ) {
+
+            message =
+                "Insufficient balance";
+        }
 
         return {
             success: false,
-            error: "Wallet error"
+            error: message
         };
     }
 
-
     if (
-        Number(wallet.balance) <
-        amount
+        !data ||
+        data.success !== true
     ) {
 
         return {
             success: false,
-            error: "Insufficient balance"
+            error:
+                data?.error ||
+                "Could not deduct entry fee"
         };
     }
 
-
-    // --------------------------------------
-    // Deduct
-    // --------------------------------------
-
-    const newBalance =
-        Number(wallet.balance) -
-        amount;
-
-
-    const {
-        data: updatedWallet,
-        error: updateError
-    } =
-        await supabase
-            .from("wallets")
-            .update({
-                balance: newBalance,
-                updated_at: new Date().toISOString()
-            })
-            .eq("user_id", userId)
-            .select()
-            .single();
-
-
-    if (updateError) {
-
-        console.error(
-            "WALLET UPDATE ERROR:",
-            updateError
-        );
-
-        return {
-            success: false,
-            error: "Could not update wallet"
-        };
-    }
-
-
-    // --------------------------------------
-    // Record transaction
-    // --------------------------------------
-
-    const {
-        error: transactionError
-    } =
-        await supabase
-            .from("transactions")
-            .insert({
-
-                user_id: userId,
-
-                type: "entry_fee",
-
-                amount: amount,
-
-                status: "completed",
-
-                description:
-                    "Bingo entry fee"
-
-            });
-
-
-    if (transactionError) {
-
-        console.error(
-            "TRANSACTION ERROR:",
-            transactionError
-        );
-
-        // The wallet has already been deducted.
-        // We will replace this with an atomic
-        // database transaction later.
-    }
-
+    // ======================================
+    // UPDATE LOCAL BALANCE
+    // ======================================
 
     walletBalance =
-        newBalance;
-
+        Number(data.balance || 0);
 
     updateWalletDisplay();
 
+    console.log(
+        "ENTRY FEE PAID:",
+        amount,
+        "NEW BALANCE:",
+        walletBalance,
+        "TRANSACTION:",
+        data.transaction_id
+    );
 
     return {
         success: true,
-        balance: newBalance
+        balance: walletBalance,
+        transactionId:
+            data.transaction_id
     };
-
 }
-
 
 // ==========================================
 // INITIALIZE WALLET

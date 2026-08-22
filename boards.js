@@ -459,7 +459,6 @@ function setupBoardStartButton() {
             "startGameBtn"
         );
 
-
     if (!button) {
 
         console.error(
@@ -467,9 +466,7 @@ function setupBoardStartButton() {
         );
 
         return;
-
     }
-
 
     button.onclick =
         async function () {
@@ -484,22 +481,76 @@ function setupBoardStartButton() {
                 );
 
                 return;
-
             }
 
-
             const fee =
-                boardsEntryFee;
+                Number(boardsEntryFee);
 
+            if (
+                !Number.isFinite(fee) ||
+                fee <= 0
+            ) {
+
+                alert(
+                    "Invalid entry fee."
+                );
+
+                return;
+            }
+
+            const userId =
+                getCurrentUserId();
+
+            if (!userId) {
+
+                alert(
+                    "❌ Player account not found. Please open VAMIOS Bingo from Telegram again."
+                );
+
+                return;
+            }
 
             button.disabled =
                 true;
 
             button.textContent =
-                "JOINING...";
+                "PAYING...";
 
+            let payment = null;
+
+            let game = null;
 
             try {
+
+                // =========================
+                // PAY ENTRY FEE
+                // =========================
+
+                payment =
+                    await deductEntryFee(
+                        fee
+                    );
+
+                if (
+                    !payment ||
+                    !payment.success
+                ) {
+
+                    throw new Error(
+                        payment?.error ||
+                        "Could not pay entry fee"
+                    );
+                }
+
+                console.log(
+                    "ENTRY FEE PAID:",
+                    fee,
+                    "Transaction:",
+                    payment.transactionId
+                );
+
+                button.textContent =
+                    "JOINING...";
 
                 // =========================
                 // LOAD ROOM
@@ -518,7 +569,6 @@ function setupBoardStartButton() {
                         )
                         .single();
 
-
                 if (
                     roomError ||
                     !room
@@ -528,9 +578,7 @@ function setupBoardStartButton() {
                         roomError?.message ||
                         "Room not found"
                     );
-
                 }
-
 
                 // =========================
                 // SET 60 SECOND TIMER
@@ -541,7 +589,6 @@ function setupBoardStartButton() {
                         Date.now() +
                         60000
                     ).toISOString();
-
 
                 const {
                     error: updateError
@@ -559,20 +606,18 @@ function setupBoardStartButton() {
                             room.id
                         );
 
-
                 if (updateError) {
 
                     throw updateError;
 
                 }
 
-
                 // =========================
                 // CREATE GAME
                 // =========================
 
                 const {
-                    data: game,
+                    data: createdGame,
                     error: gameError
                 } =
                     await supabase
@@ -589,30 +634,14 @@ function setupBoardStartButton() {
                         .select()
                         .single();
 
-
                 if (gameError) {
 
                     throw gameError;
 
                 }
 
-
-                // =========================
-                // GET CURRENT USER
-                // =========================
-
-                const userId =
-                    getCurrentUserId();
-
-
-                if (!userId) {
-
-                    throw new Error(
-                        "Current user not found"
-                    );
-
-                }
-
+                game =
+                    createdGame;
 
                 // =========================
                 // ADD PLAYER
@@ -641,13 +670,11 @@ function setupBoardStartButton() {
 
                         });
 
-
                 if (playerError) {
 
                     throw playerError;
 
                 }
-
 
                 // =========================
                 // SAVE GAME INFORMATION
@@ -658,14 +685,12 @@ function setupBoardStartButton() {
                     String(game.id)
                 );
 
-
                 localStorage.setItem(
                     "selectedBoard",
                     JSON.stringify(
                         selectedBoard
                     )
                 );
-
 
                 localStorage.setItem(
                     "selectedBoardNumber",
@@ -674,27 +699,20 @@ function setupBoardStartButton() {
                     )
                 );
 
-
-                // Player who creates
-                // the game is the host.
-
                 localStorage.setItem(
                     "isHost",
                     "true"
                 );
-
 
                 console.log(
                     "GAME CREATED:",
                     game.id
                 );
 
-
                 console.log(
                     "BOARD SAVED:",
                     selectedBoardNumber
                 );
-
 
                 // =========================
                 // OPEN WAITING ROOM
@@ -702,12 +720,10 @@ function setupBoardStartButton() {
 
                 showWaitingScreen();
 
-
                 await startWaitingRoom(
                     room.id,
                     game.id
                 );
-
 
             } catch (error) {
 
@@ -716,9 +732,79 @@ function setupBoardStartButton() {
                     error
                 );
 
+                // =========================
+                // REFUND IF PAYMENT SUCCEEDED
+                // BUT JOINING FAILED
+                // =========================
+
+                if (
+                    payment &&
+                    payment.success &&
+                    payment.transactionId
+                ) {
+
+                    console.log(
+                        "REFUNDING ENTRY FEE:",
+                        payment.transactionId
+                    );
+
+                    const {
+                        data: refundData,
+                        error: refundError
+                    } =
+                        await supabase.rpc(
+                            "refund_bingo_entry_fee",
+                            {
+                                p_user_id:
+                                    userId,
+
+                                p_amount:
+                                    fee,
+
+                                p_transaction_id:
+                                    payment.transactionId
+                            }
+                        );
+
+                    if (refundError) {
+
+                        console.error(
+                            "REFUND ERROR:",
+                            refundError
+                        );
+
+                        alert(
+                            "⚠️ Game joining failed AND automatic refund failed.\n\n" +
+                            "Please contact the administrator immediately.\n\n" +
+                            "Transaction: " +
+                            payment.transactionId
+                        );
+
+                        return;
+                    }
+
+                    if (
+                        refundData &&
+                        refundData.success === true
+                    ) {
+
+                        walletBalance =
+                            Number(
+                                refundData.balance ||
+                                0
+                            );
+
+                        updateWalletDisplay();
+
+                        console.log(
+                            "ENTRY FEE REFUNDED:",
+                            fee
+                        );
+                    }
+                }
 
                 alert(
-                    "JOIN GAME ERROR:\n\n" +
+                    "❌ Could not join the game.\n\n" +
                     (
                         error.message ||
                         String(error)
@@ -739,7 +825,6 @@ function setupBoardStartButton() {
 
 }
 
-
 // ==========================================
 // BACK BUTTON
 // ==========================================
@@ -751,13 +836,9 @@ function setupBoardBackButton() {
             "backToLobbyBtn"
         );
 
-
     if (!button) {
-
         return;
-
     }
-
 
     button.onclick =
         function () {
@@ -772,7 +853,6 @@ function setupBoardBackButton() {
             }
 
         };
-
 }
 
 
