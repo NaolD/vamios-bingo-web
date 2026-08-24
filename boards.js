@@ -982,80 +982,143 @@ function setupBoardStartButton() {
                 // =========================
                 // FIND OR CREATE SHARED GAME
                 // =========================
+const {
+    data: existingGame,
+    error: existingGameError
+} =
+    await supabase
+        .from("games")
+        .select("*")
+        .eq(
+            "room_id",
+            room.id
+        )
+        .eq(
+            "status",
+            "waiting"
+        )
+        .order(
+            "created_at",
+            {
+                ascending: false
+            }
+        )
+        .limit(1)
+        .maybeSingle();
 
-                const {
-                    data: existingGame,
-                    error: existingGameError
-                } =
-                    await supabase
-                        .from("games")
-                        .select("*")
-                        .eq(
-                            "room_id",
-                            room.id
-                        )
-                        .eq(
-                            "status",
-                            "waiting"
-                        )
-                        .order(
-                            "id",
-                            {
-                                ascending: false
-                            }
-                        )
-                        .limit(1)
-                        .maybeSingle();
+if (existingGameError) {
 
-                if (existingGameError) {
+    throw existingGameError;
+}
 
-                    throw existingGameError;
-                }
+if (existingGame) {
 
-                if (existingGame) {
+    game =
+        existingGame;
 
-                    game =
-                        existingGame;
+    console.log(
+        "JOINING EXISTING SHARED GAME:",
+        game.id
+    );
 
-                    console.log(
-                        "JOINING EXISTING GAME:",
-                        game.id
-                    );
+} else {
 
-                } else {
+    // =========================
+    // CREATE WAITING GAME
+    // =========================
 
-                    const {
-                        data: createdGame,
-                        error: gameError
-                    } =
-                        await supabase
-                            .from("games")
-                            .insert({
+    const {
+        data: createdGame,
+        error: gameError
+    } =
+        await supabase
+            .from("games")
+            .insert({
 
-                                room_id:
-                                    room.id,
+                room_id:
+                    room.id,
 
-                                status:
-                                    "waiting"
+                status:
+                    "waiting"
 
-                            })
-                            .select()
-                            .single();
+            })
+            .select()
+            .single();
 
-                    if (gameError) {
+    if (gameError) {
 
-                        throw gameError;
-                    }
+        // =========================
+        // ANOTHER PLAYER MAY HAVE
+        // CREATED THE GAME FIRST
+        // =========================
 
-                    game =
-                        createdGame;
+        if (
+            gameError.code === "23505"
+        ) {
 
-                    console.log(
-                        "CREATED SHARED GAME:",
-                        game.id
-                    );
-                }
+            console.log(
+                "WAITING GAME ALREADY CREATED BY ANOTHER PLAYER. JOINING IT..."
+            );
 
+            const {
+                data: concurrentGame,
+                error: concurrentGameError
+            } =
+                await supabase
+                    .from("games")
+                    .select("*")
+                    .eq(
+                        "room_id",
+                        room.id
+                    )
+                    .eq(
+                        "status",
+                        "waiting"
+                    )
+                    .order(
+                        "created_at",
+                        {
+                            ascending: false
+                        }
+                    )
+                    .limit(1)
+                    .maybeSingle();
+
+            if (
+                concurrentGameError ||
+                !concurrentGame
+            ) {
+
+                throw new Error(
+                    concurrentGameError?.message ||
+                    "Could not find the shared waiting game."
+                );
+            }
+
+            game =
+                concurrentGame;
+
+            console.log(
+                "JOINED SHARED GAME AFTER RACE:",
+                game.id
+            );
+
+        } else {
+
+            throw gameError;
+        }
+
+    } else {
+
+        game =
+            createdGame;
+
+        console.log(
+            "CREATED NEW SHARED GAME:",
+            game.id
+        );
+    }
+}
                 // =========================
                 // SET SHARED 60 SECOND TIMER
                 // ONLY IF NOT ALREADY SET
