@@ -1117,98 +1117,199 @@ if (existingGame) {
             "CREATED NEW SHARED GAME:",
             game.id
         );
-    }
+   }
 }
                 // =========================
                 // SET SHARED 60 SECOND TIMER
-                // ONLY IF NOT ALREADY SET
                 // =========================
 
-                if (!room.next_game_time) {
+if (!room.next_game_time) {
 
-                    const nextGameTime =
-                        new Date(
-                            Date.now() +
-                            60000
-                        ).toISOString();
+    const nextGameTime =
+        new Date(
+            Date.now() + 60000
+        ).toISOString();
 
-                    const {
-                        data: updatedRoom,
-                        error: timerError
-                    } =
-                        await supabase
-                            .from("rooms")
-                            .update({
+    const {
+        data: updatedRoom,
+        error: timerError
+    } =
+        await supabase
+            .from("rooms")
+            .update({
+                next_game_time:
+                    nextGameTime
+            })
+            .eq(
+                "id",
+                room.id
+            )
+            .is(
+                "next_game_time",
+                null
+            )
+            .select()
+            .maybeSingle();
 
-                                next_game_time:
-                                    nextGameTime
 
-                            })
-                            .eq(
-                                "id",
-                                room.id
-                            )
-                            .is(
-                                "next_game_time",
-                                null
-                            )
-                            .select()
-                            .maybeSingle();
+    if (timerError) {
 
-                    if (timerError) {
+        throw timerError;
 
-                        throw timerError;
-                    }
+    }
 
-                    if (updatedRoom) {
 
-                        room.next_game_time =
-                            updatedRoom.next_game_time;
+    if (updatedRoom) {
 
-                        console.log(
-                            "STARTED SHARED 60 SECOND TIMER:",
-                            room.next_game_time
-                        );
+        room.next_game_time =
+            updatedRoom.next_game_time;
 
-                    } else {
+        console.log(
+            "STARTED SHARED TIMER:",
+            room.next_game_time
+        );
 
-                        const {
-                            data: currentRoom,
-                            error: currentRoomError
-                        } =
-                            await supabase
-                                .from("rooms")
-                                .select(
-                                    "next_game_time"
-                                )
-                                .eq(
-                                    "id",
-                                    room.id
-                                )
-                                .single();
 
-                        if (currentRoomError) {
+    } else {
 
-                            throw currentRoomError;
-                        }
+        const {
+            data: currentRoom,
+            error: currentRoomError
+        } =
+            await supabase
+                .from("rooms")
+                .select(
+                    "next_game_time"
+                )
+                .eq(
+                    "id",
+                    room.id
+                )
+                .single();
 
-                        room.next_game_time =
-                            currentRoom.next_game_time;
 
-                        console.log(
-                            "USING EXISTING TIMER:",
-                            room.next_game_time
-                        );
-                    }
-                } else {
+        if (currentRoomError) {
 
-                    console.log(
-                        "USING EXISTING TIMER:",
-                        room.next_game_time
-                    );
-                }
+            throw currentRoomError;
 
-                // =========================
+        }
+
+
+        room.next_game_time =
+            currentRoom.next_game_time;
+
+
+        console.log(
+            "USING EXISTING TIMER:",
+            room.next_game_time
+        );
+
+    }
+
+} else {
+
+    console.log(
+        "USING EXISTING TIMER:",
+        room.next_game_time
+    );
+
+}
+// =========================
+// SET SHARED 60 SECOND TIMER
+// =========================
+
+if (!room.next_game_time) {
+
+    const nextGameTime =
+        new Date(
+            Date.now() + 60000
+        ).toISOString();
+
+    const {
+        data: updatedRoom,
+        error: timerError
+    } =
+        await supabase
+            .from("rooms")
+            .update({
+                next_game_time:
+                    nextGameTime
+            })
+            .eq(
+                "id",
+                room.id
+            )
+            .is(
+                "next_game_time",
+                null
+            )
+            .select()
+            .maybeSingle();
+
+
+    if (timerError) {
+
+        throw timerError;
+
+    }
+
+
+    if (updatedRoom) {
+
+        room.next_game_time =
+            updatedRoom.next_game_time;
+
+        console.log(
+            "STARTED SHARED TIMER:",
+            room.next_game_time
+        );
+
+
+    } else {
+
+        const {
+            data: currentRoom,
+            error: currentRoomError
+        } =
+            await supabase
+                .from("rooms")
+                .select(
+                    "next_game_time"
+                )
+                .eq(
+                    "id",
+                    room.id
+                )
+                .single();
+
+
+        if (currentRoomError) {
+
+            throw currentRoomError;
+
+        }
+
+
+        room.next_game_time =
+            currentRoom.next_game_time;
+
+
+        console.log(
+            "USING EXISTING TIMER:",
+            room.next_game_time
+        );
+
+    }
+
+} else {
+
+    console.log(
+        "USING EXISTING TIMER:",
+        room.next_game_time
+    );
+
+}
+               // =========================
                 // LOAD TAKEN BOARDS
                 // =========================
 
