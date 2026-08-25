@@ -7,7 +7,6 @@ let boardsEntryFee = 0;
 let selectedBoardNumber = null;
 let selectedBoard = null;
 
-
 // ==========================================
 // SHARED BOARD SYNCHRONIZATION
 // ==========================================
@@ -121,8 +120,7 @@ async function startBoardRealtime(gameId) {
             boardSyncChannel
         );
 
-        boardSyncChannel =
-            null;
+        boardSyncChannel = null;
     }
 
     await loadTakenBoards(
@@ -216,9 +214,8 @@ async function startBoardSelectionSync(fee) {
     const roomId =
         room.id;
 
-
     // --------------------------------------
-    // FIND CURRENT WAITING GAME
+    // Find current waiting game
     // --------------------------------------
 
     const {
@@ -255,9 +252,8 @@ async function startBoardSelectionSync(fee) {
         return;
     }
 
-
     // --------------------------------------
-    // ATTACH TO WAITING GAME
+    // Attach to waiting game
     // --------------------------------------
 
     async function attachToGame(gameId) {
@@ -335,9 +331,7 @@ async function startBoardSelectionSync(fee) {
 
                     }
                 );
-
     }
-
 
     if (existingGame) {
 
@@ -348,10 +342,9 @@ async function startBoardSelectionSync(fee) {
         return;
     }
 
-
     // --------------------------------------
-    // NO WAITING GAME YET
-    // LISTEN FOR GAME CREATION
+    // No waiting game yet.
+    // Listen for one to be created.
     // --------------------------------------
 
     console.log(
@@ -576,9 +569,7 @@ async function selectBoard(number) {
         Number(number);
 
     if (
-        takenBoardNumbers.has(
-            number
-        )
+        takenBoardNumbers.has(number)
     ) {
 
         alert(
@@ -591,7 +582,7 @@ async function selectBoard(number) {
     }
 
     selectedBoardNumber =
-        number;
+        Number(number);
 
     console.log(
         "SELECTED BOARD:",
@@ -663,13 +654,9 @@ function generateBoard(seed) {
     const ranges = [
 
         [1, 15],
-
         [16, 30],
-
         [31, 45],
-
         [46, 60],
-
         [61, 75]
 
     ];
@@ -886,9 +873,7 @@ function setupBoardStartButton() {
             }
 
             const fee =
-                Number(
-                    boardsEntryFee
-                );
+                Number(boardsEntryFee);
 
             if (
                 !Number.isFinite(fee) ||
@@ -953,15 +938,13 @@ function setupBoardStartButton() {
                         roomError?.message ||
                         "Room not found"
                     );
-
                 }
 
                 room =
                     loadedRoom;
 
-
                 // =========================
-                // FIND SHARED WAITING GAME
+                // FIND WAITING GAME
                 // =========================
 
                 const {
@@ -994,7 +977,6 @@ function setupBoardStartButton() {
 
                 }
 
-
                 // =========================
                 // USE EXISTING GAME
                 // =========================
@@ -1009,11 +991,13 @@ function setupBoardStartButton() {
                         game.id
                     );
 
-                } else {
+                }
 
-                    // =========================
-                    // CREATE SHARED GAME
-                    // =========================
+                // =========================
+                // CREATE NEW SHARED GAME
+                // =========================
+
+                else {
 
                     const {
                         data: createdGame,
@@ -1035,10 +1019,9 @@ function setupBoardStartButton() {
 
                     if (gameError) {
 
-                        // =========================
-                        // CONCURRENT PLAYER CREATED
-                        // THE GAME FIRST
-                        // =========================
+                        // ==================================
+                        // ANOTHER PLAYER WON THE RACE
+                        // ==================================
 
                         if (
                             gameError.code ===
@@ -1046,12 +1029,13 @@ function setupBoardStartButton() {
                         ) {
 
                             console.log(
-                                "WAITING GAME ALREADY CREATED BY ANOTHER PLAYER. JOINING IT..."
+                                "WAITING GAME ALREADY CREATED BY ANOTHER PLAYER."
                             );
 
                             const {
                                 data: concurrentGame,
-                                error: concurrentGameError
+                                error:
+                                    concurrentGameError
                             } =
                                 await supabase
                                     .from("games")
@@ -1113,64 +1097,24 @@ function setupBoardStartButton() {
 
                 }
 
+                // ==========================================
+                // START SHARED 60 SECOND TIMER
+                //
+                // IMPORTANT:
+                // Only the player who creates the NEW
+                // waiting game starts the timer.
+                //
+                // Players joining an existing game use
+                // the same room.next_game_time.
+                // ==========================================
 
-                // =========================
-                // START / GET SHARED 60 SECOND
-                // TIMER
-                // =========================
+                if (!existingGame && game) {
 
-                console.log(
-                    "CHECKING SHARED ROOM TIMER:",
-                    room.next_game_time
-                );
-
-
-                let nextGameTime =
-                    room.next_game_time;
-
-
-                let timerNeedsStart =
-                    !nextGameTime;
-
-
-                // If the stored timer has already expired,
-                // start a fresh 60-second waiting period.
-                if (nextGameTime) {
-
-                    const existingEndTime =
-                        new Date(
-                            nextGameTime
-                        ).getTime();
-
-                    if (
-                        !Number.isFinite(
-                            existingEndTime
-                        ) ||
-                        existingEndTime <=
-                        Date.now()
-                    ) {
-
-                        timerNeedsStart =
-                            true;
-
-                    }
-
-                }
-
-
-                // =========================
-                // CREATE NEW TIMER
-                // ONLY WHEN NECESSARY
-                // =========================
-
-                if (timerNeedsStart) {
-
-                    const newEndTime =
+                    const nextGameTime =
                         new Date(
                             Date.now() +
                             60000
                         ).toISOString();
-
 
                     const {
                         data: updatedRoom,
@@ -1180,17 +1124,20 @@ function setupBoardStartButton() {
                             .from("rooms")
                             .update({
                                 next_game_time:
-                                    newEndTime
+                                    nextGameTime
                             })
                             .eq(
                                 "id",
                                 room.id
                             )
+                            .is(
+                                "next_game_time",
+                                null
+                            )
                             .select(
                                 "next_game_time"
                             )
-                            .single();
-
+                            .maybeSingle();
 
                     if (timerError) {
 
@@ -1198,40 +1145,80 @@ function setupBoardStartButton() {
 
                     }
 
+                    if (updatedRoom) {
 
-                    if (
-                        !updatedRoom ||
-                        !updatedRoom.next_game_time
-                    ) {
+                        room.next_game_time =
+                            updatedRoom.next_game_time;
 
-                        throw new Error(
-                            "Could not start the shared 60 second timer."
+                        console.log(
+                            "STARTED NEW SHARED 60 SECOND TIMER:",
+                            room.next_game_time
+                        );
+
+                    } else {
+
+                        // Another player may have set it
+                        // between the room read and this update.
+
+                        const {
+                            data: currentRoom,
+                            error:
+                                currentRoomError
+                        } =
+                            await supabase
+                                .from("rooms")
+                                .select(
+                                    "next_game_time"
+                                )
+                                .eq(
+                                    "id",
+                                    room.id
+                                )
+                                .single();
+
+                        if (currentRoomError) {
+
+                            throw currentRoomError;
+
+                        }
+
+                        room.next_game_time =
+                            currentRoom.next_game_time;
+
+                        console.log(
+                            "USING SHARED TIMER CREATED BY ANOTHER PLAYER:",
+                            room.next_game_time
                         );
 
                     }
 
+                }
 
-                    nextGameTime =
-                        updatedRoom.next_game_time;
+                // ==========================================
+                // EXISTING WAITING GAME
+                // ==========================================
 
-                    room.next_game_time =
-                        nextGameTime;
+                else {
 
+                    // The timer must already belong to the
+                    // existing shared game.
+
+                    if (
+                        !room.next_game_time
+                    ) {
+
+                        throw new Error(
+                            "Shared waiting game exists but the room has no next_game_time."
+                        );
+
+                    }
 
                     console.log(
-                        "STARTED NEW SHARED 60 SECOND TIMER:",
-                        nextGameTime
-                    );
-
-                } else {
-
-                    console.log(
-                        "USING ACTIVE SHARED TIMER:",
-                        nextGameTime
+                        "USING EXISTING SHARED TIMER:",
+                        room.next_game_time
                     );
 
                 }
-
 
                 // =========================
                 // LOAD TAKEN BOARDS
@@ -1244,7 +1231,6 @@ function setupBoardStartButton() {
                 await startBoardRealtime(
                     game.id
                 );
-
 
                 // =========================
                 // CHECK BOARD AVAILABILITY
@@ -1266,7 +1252,6 @@ function setupBoardStartButton() {
 
                 }
 
-
                 // =========================
                 // PAY ENTRY FEE
                 // =========================
@@ -1278,7 +1263,6 @@ function setupBoardStartButton() {
                     await deductEntryFee(
                         fee
                     );
-
 
                 if (
                     !payment ||
@@ -1292,7 +1276,6 @@ function setupBoardStartButton() {
 
                 }
 
-
                 console.log(
                     "ENTRY FEE PAID:",
                     fee,
@@ -1300,10 +1283,8 @@ function setupBoardStartButton() {
                     payment.transactionId
                 );
 
-
                 button.textContent =
                     "JOINING...";
-
 
                 // =========================
                 // FINAL BOARD CHECK
@@ -1312,7 +1293,6 @@ function setupBoardStartButton() {
                 await loadTakenBoards(
                     game.id
                 );
-
 
                 if (
                     takenBoardNumbers.has(
@@ -1329,7 +1309,6 @@ function setupBoardStartButton() {
                     );
 
                 }
-
 
                 // =========================
                 // ADD PLAYER
@@ -1358,17 +1337,14 @@ function setupBoardStartButton() {
 
                         });
 
-
                 if (playerError) {
 
                     throw playerError;
 
                 }
 
-
                 playerInserted =
                     true;
-
 
                 // =========================
                 // SAVE GAME INFORMATION
@@ -1376,9 +1352,7 @@ function setupBoardStartButton() {
 
                 localStorage.setItem(
                     "gameId",
-                    String(
-                        game.id
-                    )
+                    String(game.id)
                 );
 
                 localStorage.setItem(
@@ -1400,7 +1374,6 @@ function setupBoardStartButton() {
                     "false"
                 );
 
-
                 console.log(
                     "JOINED GAME:",
                     game.id
@@ -1410,7 +1383,6 @@ function setupBoardStartButton() {
                     "BOARD SAVED:",
                     selectedBoardNumber
                 );
-
 
                 // =========================
                 // OPEN WAITING ROOM
@@ -1423,14 +1395,12 @@ function setupBoardStartButton() {
                     game.id
                 );
 
-
             } catch (error) {
 
                 console.error(
                     "JOIN GAME ERROR:",
                     error
                 );
-
 
                 // =========================
                 // REFUND IF PAYMENT SUCCEEDED
@@ -1448,7 +1418,6 @@ function setupBoardStartButton() {
                         "REFUNDING ENTRY FEE:",
                         payment.transactionId
                     );
-
 
                     const {
                         data: refundData,
@@ -1468,7 +1437,6 @@ function setupBoardStartButton() {
                             }
                         );
 
-
                     if (refundError) {
 
                         console.error(
@@ -1486,7 +1454,6 @@ function setupBoardStartButton() {
                         return;
 
                     }
-
 
                     if (
                         refundData &&
@@ -1510,7 +1477,6 @@ function setupBoardStartButton() {
 
                 }
 
-
                 alert(
                     "❌ Could not join the game.\n\n" +
                     (
@@ -1518,7 +1484,6 @@ function setupBoardStartButton() {
                         String(error)
                     )
                 );
-
 
             } finally {
 
