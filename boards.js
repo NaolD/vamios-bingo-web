@@ -6,6 +6,8 @@
 let boardsEntryFee = 0;
 let selectedBoardNumber = null;
 let selectedBoard = null;
+
+
 // ==========================================
 // SHARED BOARD SYNCHRONIZATION
 // ==========================================
@@ -113,17 +115,16 @@ async function startBoardRealtime(gameId) {
         return;
     }
 
-    // Remove previous channel
     if (boardSyncChannel) {
 
         await supabase.removeChannel(
             boardSyncChannel
         );
 
-        boardSyncChannel = null;
+        boardSyncChannel =
+            null;
     }
 
-    // Always refresh from database first
     await loadTakenBoards(
         gameId
     );
@@ -158,8 +159,6 @@ async function startBoardRealtime(gameId) {
                         payload
                     );
 
-                    // Reload the complete list instead of
-                    // trusting only the realtime payload.
                     await loadTakenBoards(
                         gameId
                     );
@@ -178,6 +177,7 @@ async function startBoardRealtime(gameId) {
             );
 
 }
+
 
 // ==========================================
 // BOARD SELECTION REALTIME SYNCHRONIZATION
@@ -216,8 +216,9 @@ async function startBoardSelectionSync(fee) {
     const roomId =
         room.id;
 
+
     // --------------------------------------
-    // Find current waiting game
+    // FIND CURRENT WAITING GAME
     // --------------------------------------
 
     const {
@@ -236,7 +237,7 @@ async function startBoardSelectionSync(fee) {
                 "waiting"
             )
             .order(
-                "id",
+                "created_at",
                 {
                     ascending: false
                 }
@@ -254,8 +255,9 @@ async function startBoardSelectionSync(fee) {
         return;
     }
 
+
     // --------------------------------------
-    // Attach to waiting game
+    // ATTACH TO WAITING GAME
     // --------------------------------------
 
     async function attachToGame(gameId) {
@@ -318,6 +320,7 @@ async function startBoardSelectionSync(fee) {
                             );
 
                             updateTakenBoardButtons();
+
                         }
 
                     }
@@ -332,7 +335,9 @@ async function startBoardSelectionSync(fee) {
 
                     }
                 );
+
     }
+
 
     if (existingGame) {
 
@@ -343,9 +348,10 @@ async function startBoardSelectionSync(fee) {
         return;
     }
 
+
     // --------------------------------------
-    // No waiting game yet.
-    // Listen for one to be created.
+    // NO WAITING GAME YET
+    // LISTEN FOR GAME CREATION
     // --------------------------------------
 
     console.log(
@@ -409,13 +415,13 @@ async function startBoardSelectionSync(fee) {
 
                 }
             );
+
 }
 
 
 // ==========================================
 // INITIALIZE BOARD SCREEN
 // ==========================================
-
 
 async function initializeBoards(fee) {
 
@@ -433,7 +439,6 @@ async function initializeBoards(fee) {
     selectedBoard =
         null;
 
-
     const selectedFee =
         document.getElementById(
             "selectedFee"
@@ -446,7 +451,6 @@ async function initializeBoards(fee) {
 
     }
 
-
     const selectedNumber =
         document.getElementById(
             "selectedBoardNumber"
@@ -458,7 +462,6 @@ async function initializeBoards(fee) {
             "None";
 
     }
-
 
     const preview =
         document.getElementById(
@@ -473,7 +476,6 @@ async function initializeBoards(fee) {
 
     }
 
-
     const startButton =
         document.getElementById(
             "startGameBtn"
@@ -486,19 +488,16 @@ async function initializeBoards(fee) {
 
     }
 
-
     createBoardNumbers();
 
-    // Start synchronization while players
-    // are still choosing their board.
     await startBoardSelectionSync(
         boardsEntryFee
     );
 
-
     console.log(
         "BOARDS READY"
     );
+
 }
 
 
@@ -522,9 +521,7 @@ function createBoardNumbers() {
         return;
     }
 
-
     container.innerHTML = "";
-
 
     for (
         let number = 1;
@@ -549,7 +546,6 @@ function createBoardNumbers() {
         button.dataset.number =
             number;
 
-
         button.addEventListener(
             "click",
             function () {
@@ -560,7 +556,6 @@ function createBoardNumbers() {
 
             }
         );
-
 
         container.appendChild(
             button
@@ -576,11 +571,14 @@ function createBoardNumbers() {
 // ==========================================
 
 async function selectBoard(number) {
+
     number =
         Number(number);
 
     if (
-        takenBoardNumbers.has(number)
+        takenBoardNumbers.has(
+            number
+        )
     ) {
 
         alert(
@@ -591,15 +589,14 @@ async function selectBoard(number) {
 
         return;
     }
-    selectedBoardNumber =
-        Number(number);
 
+    selectedBoardNumber =
+        number;
 
     console.log(
         "SELECTED BOARD:",
         selectedBoardNumber
     );
-
 
     document
         .querySelectorAll(
@@ -619,7 +616,6 @@ async function selectBoard(number) {
             }
         );
 
-
     const selectedNumber =
         document.getElementById(
             "selectedBoardNumber"
@@ -632,17 +628,14 @@ async function selectBoard(number) {
 
     }
 
-
     selectedBoard =
         generateBoard(
             selectedBoardNumber
         );
 
-
     displayBoardPreview(
         selectedBoard
     );
-
 
     const startButton =
         document.getElementById(
@@ -667,7 +660,6 @@ function generateBoard(seed) {
 
     const board = [];
 
-
     const ranges = [
 
         [1, 15],
@@ -682,7 +674,6 @@ function generateBoard(seed) {
 
     ];
 
-
     for (
         let column = 0;
         column < 5;
@@ -695,7 +686,6 @@ function generateBoard(seed) {
                 ranges[column][1]
             );
 
-
         for (
             let row = 0;
             row < 5;
@@ -707,7 +697,6 @@ function generateBoard(seed) {
                 board[row] = [];
 
             }
-
 
             if (
                 row === 2 &&
@@ -728,7 +717,6 @@ function generateBoard(seed) {
 
     }
 
-
     return board;
 
 }
@@ -745,7 +733,6 @@ function createShuffledNumbers(
 
     const numbers = [];
 
-
     for (
         let i = min;
         i <= max;
@@ -755,7 +742,6 @@ function createShuffledNumbers(
         numbers.push(i);
 
     }
-
 
     for (
         let i = numbers.length - 1;
@@ -769,7 +755,6 @@ function createShuffledNumbers(
                 (i + 1)
             );
 
-
         [
             numbers[i],
             numbers[j]
@@ -780,7 +765,6 @@ function createShuffledNumbers(
         ];
 
     }
-
 
     return numbers;
 
@@ -805,7 +789,6 @@ function displayBoardPreview(
             "previewGrid"
         );
 
-
     if (!preview || !grid) {
 
         console.error(
@@ -816,9 +799,7 @@ function displayBoardPreview(
 
     }
 
-
     grid.innerHTML = "";
-
 
     board.forEach(
         row => {
@@ -831,10 +812,8 @@ function displayBoardPreview(
                             "div"
                         );
 
-
                     cell.className =
                         "bingo-cell";
-
 
                     if (
                         value === "FREE"
@@ -854,7 +833,6 @@ function displayBoardPreview(
 
                     }
 
-
                     grid.appendChild(
                         cell
                     );
@@ -864,7 +842,6 @@ function displayBoardPreview(
 
         }
     );
-
 
     preview.classList.remove(
         "hidden"
@@ -909,7 +886,9 @@ function setupBoardStartButton() {
             }
 
             const fee =
-                Number(boardsEntryFee);
+                Number(
+                    boardsEntryFee
+                );
 
             if (
                 !Number.isFinite(fee) ||
@@ -974,342 +953,287 @@ function setupBoardStartButton() {
                         roomError?.message ||
                         "Room not found"
                     );
+
                 }
 
                 room =
                     loadedRoom;
 
+
                 // =========================
-                // FIND OR CREATE SHARED GAME
+                // FIND SHARED WAITING GAME
                 // =========================
-const {
-    data: existingGame,
-    error: existingGameError
-} =
-    await supabase
-        .from("games")
-        .select("*")
-        .eq(
-            "room_id",
-            room.id
-        )
-        .eq(
-            "status",
-            "waiting"
-        )
-        .order(
-            "created_at",
-            {
-                ascending: false
-            }
-        )
-        .limit(1)
-        .maybeSingle();
 
-if (existingGameError) {
+                const {
+                    data: existingGame,
+                    error: existingGameError
+                } =
+                    await supabase
+                        .from("games")
+                        .select("*")
+                        .eq(
+                            "room_id",
+                            room.id
+                        )
+                        .eq(
+                            "status",
+                            "waiting"
+                        )
+                        .order(
+                            "created_at",
+                            {
+                                ascending: false
+                            }
+                        )
+                        .limit(1)
+                        .maybeSingle();
 
-    throw existingGameError;
-}
+                if (existingGameError) {
 
-if (existingGame) {
+                    throw existingGameError;
 
-    game =
-        existingGame;
+                }
 
-    console.log(
-        "JOINING EXISTING SHARED GAME:",
-        game.id
-    );
 
-} else {
+                // =========================
+                // USE EXISTING GAME
+                // =========================
 
-    // =========================
-    // CREATE WAITING GAME
-    // =========================
+                if (existingGame) {
 
-    const {
-        data: createdGame,
-        error: gameError
-    } =
-        await supabase
-            .from("games")
-            .insert({
+                    game =
+                        existingGame;
 
-                room_id:
-                    room.id,
+                    console.log(
+                        "JOINING EXISTING SHARED GAME:",
+                        game.id
+                    );
 
-                status:
-                    "waiting"
+                } else {
 
-            })
-            .select()
-            .single();
+                    // =========================
+                    // CREATE SHARED GAME
+                    // =========================
 
-    if (gameError) {
+                    const {
+                        data: createdGame,
+                        error: gameError
+                    } =
+                        await supabase
+                            .from("games")
+                            .insert({
 
-        // =========================
-        // ANOTHER PLAYER MAY HAVE
-        // CREATED THE GAME FIRST
-        // =========================
+                                room_id:
+                                    room.id,
 
-        if (
-            gameError.code === "23505"
-        ) {
+                                status:
+                                    "waiting"
 
-            console.log(
-                "WAITING GAME ALREADY CREATED BY ANOTHER PLAYER. JOINING IT..."
-            );
+                            })
+                            .select()
+                            .single();
 
-            const {
-                data: concurrentGame,
-                error: concurrentGameError
-            } =
-                await supabase
-                    .from("games")
-                    .select("*")
-                    .eq(
-                        "room_id",
-                        room.id
-                    )
-                    .eq(
-                        "status",
-                        "waiting"
-                    )
-                    .order(
-                        "created_at",
-                        {
-                            ascending: false
+                    if (gameError) {
+
+                        // =========================
+                        // CONCURRENT PLAYER CREATED
+                        // THE GAME FIRST
+                        // =========================
+
+                        if (
+                            gameError.code ===
+                            "23505"
+                        ) {
+
+                            console.log(
+                                "WAITING GAME ALREADY CREATED BY ANOTHER PLAYER. JOINING IT..."
+                            );
+
+                            const {
+                                data: concurrentGame,
+                                error: concurrentGameError
+                            } =
+                                await supabase
+                                    .from("games")
+                                    .select("*")
+                                    .eq(
+                                        "room_id",
+                                        room.id
+                                    )
+                                    .eq(
+                                        "status",
+                                        "waiting"
+                                    )
+                                    .order(
+                                        "created_at",
+                                        {
+                                            ascending: false
+                                        }
+                                    )
+                                    .limit(1)
+                                    .maybeSingle();
+
+                            if (
+                                concurrentGameError ||
+                                !concurrentGame
+                            ) {
+
+                                throw new Error(
+                                    concurrentGameError?.message ||
+                                    "Could not find the shared waiting game."
+                                );
+
+                            }
+
+                            game =
+                                concurrentGame;
+
+                            console.log(
+                                "JOINED SHARED GAME AFTER RACE:",
+                                game.id
+                            );
+
+                        } else {
+
+                            throw gameError;
+
                         }
-                    )
-                    .limit(1)
-                    .maybeSingle();
 
-            if (
-                concurrentGameError ||
-                !concurrentGame
-            ) {
+                    } else {
 
-                throw new Error(
-                    concurrentGameError?.message ||
-                    "Could not find the shared waiting game."
+                        game =
+                            createdGame;
+
+                        console.log(
+                            "CREATED NEW SHARED GAME:",
+                            game.id
+                        );
+
+                    }
+
+                }
+
+
+                // =========================
+                // START / GET SHARED 60 SECOND
+                // TIMER
+                // =========================
+
+                console.log(
+                    "CHECKING SHARED ROOM TIMER:",
+                    room.next_game_time
                 );
-            }
 
-            game =
-                concurrentGame;
 
-            console.log(
-                "JOINED SHARED GAME AFTER RACE:",
-                game.id
-            );
+                let nextGameTime =
+                    room.next_game_time;
 
-        } else {
 
-            throw gameError;
-        }
+                let timerNeedsStart =
+                    !nextGameTime;
 
-    } else {
 
-        game =
-            createdGame;
+                // If the stored timer has already expired,
+                // start a fresh 60-second waiting period.
+                if (nextGameTime) {
 
-        console.log(
-            "CREATED NEW SHARED GAME:",
-            game.id
-        );
-   }
-}
+                    const existingEndTime =
+                        new Date(
+                            nextGameTime
+                        ).getTime();
+
+                    if (
+                        !Number.isFinite(
+                            existingEndTime
+                        ) ||
+                        existingEndTime <=
+                        Date.now()
+                    ) {
+
+                        timerNeedsStart =
+                            true;
+
+                    }
+
+                }
+
+
                 // =========================
-                // SET SHARED 60 SECOND TIMER
+                // CREATE NEW TIMER
+                // ONLY WHEN NECESSARY
                 // =========================
 
-if (!room.next_game_time) {
+                if (timerNeedsStart) {
 
-    const nextGameTime =
-        new Date(
-            Date.now() + 60000
-        ).toISOString();
-
-    const {
-        data: updatedRoom,
-        error: timerError
-    } =
-        await supabase
-            .from("rooms")
-            .update({
-                next_game_time:
-                    nextGameTime
-            })
-            .eq(
-                "id",
-                room.id
-            )
-            .is(
-                "next_game_time",
-                null
-            )
-            .select()
-            .maybeSingle();
+                    const newEndTime =
+                        new Date(
+                            Date.now() +
+                            60000
+                        ).toISOString();
 
 
-    if (timerError) {
-
-        throw timerError;
-
-    }
-
-
-    if (updatedRoom) {
-
-        room.next_game_time =
-            updatedRoom.next_game_time;
-
-        console.log(
-            "STARTED SHARED TIMER:",
-            room.next_game_time
-        );
-
-
-    } else {
-
-        const {
-            data: currentRoom,
-            error: currentRoomError
-        } =
-            await supabase
-                .from("rooms")
-                .select(
-                    "next_game_time"
-                )
-                .eq(
-                    "id",
-                    room.id
-                )
-                .single();
+                    const {
+                        data: updatedRoom,
+                        error: timerError
+                    } =
+                        await supabase
+                            .from("rooms")
+                            .update({
+                                next_game_time:
+                                    newEndTime
+                            })
+                            .eq(
+                                "id",
+                                room.id
+                            )
+                            .select(
+                                "next_game_time"
+                            )
+                            .single();
 
 
-        if (currentRoomError) {
+                    if (timerError) {
 
-            throw currentRoomError;
+                        throw timerError;
 
-        }
-
-
-        room.next_game_time =
-            currentRoom.next_game_time;
+                    }
 
 
-        console.log(
-            "USING EXISTING TIMER:",
-            room.next_game_time
-        );
+                    if (
+                        !updatedRoom ||
+                        !updatedRoom.next_game_time
+                    ) {
 
-    }
+                        throw new Error(
+                            "Could not start the shared 60 second timer."
+                        );
 
-} else {
-
-    console.log(
-        "USING EXISTING TIMER:",
-        room.next_game_time
-    );
-
-}
-// =========================
-// SET SHARED 60 SECOND TIMER
-// =========================
-
-if (!room.next_game_time) {
-
-    const nextGameTime =
-        new Date(
-            Date.now() + 60000
-        ).toISOString();
-
-    const {
-        data: updatedRoom,
-        error: timerError
-    } =
-        await supabase
-            .from("rooms")
-            .update({
-                next_game_time:
-                    nextGameTime
-            })
-            .eq(
-                "id",
-                room.id
-            )
-            .is(
-                "next_game_time",
-                null
-            )
-            .select()
-            .maybeSingle();
+                    }
 
 
-    if (timerError) {
+                    nextGameTime =
+                        updatedRoom.next_game_time;
 
-        throw timerError;
-
-    }
-
-
-    if (updatedRoom) {
-
-        room.next_game_time =
-            updatedRoom.next_game_time;
-
-        console.log(
-            "STARTED SHARED TIMER:",
-            room.next_game_time
-        );
+                    room.next_game_time =
+                        nextGameTime;
 
 
-    } else {
+                    console.log(
+                        "STARTED NEW SHARED 60 SECOND TIMER:",
+                        nextGameTime
+                    );
 
-        const {
-            data: currentRoom,
-            error: currentRoomError
-        } =
-            await supabase
-                .from("rooms")
-                .select(
-                    "next_game_time"
-                )
-                .eq(
-                    "id",
-                    room.id
-                )
-                .single();
+                } else {
+
+                    console.log(
+                        "USING ACTIVE SHARED TIMER:",
+                        nextGameTime
+                    );
+
+                }
 
 
-        if (currentRoomError) {
-
-            throw currentRoomError;
-
-        }
-
-
-        room.next_game_time =
-            currentRoom.next_game_time;
-
-
-        console.log(
-            "USING EXISTING TIMER:",
-            room.next_game_time
-        );
-
-    }
-
-} else {
-
-    console.log(
-        "USING EXISTING TIMER:",
-        room.next_game_time
-    );
-
-}
-               // =========================
+                // =========================
                 // LOAD TAKEN BOARDS
                 // =========================
 
@@ -1317,9 +1241,10 @@ if (!room.next_game_time) {
                     game.id
                 );
 
-                startBoardRealtime(
+                await startBoardRealtime(
                     game.id
                 );
+
 
                 // =========================
                 // CHECK BOARD AVAILABILITY
@@ -1338,7 +1263,9 @@ if (!room.next_game_time) {
                         selectedBoardNumber +
                         " has already been taken. Please select another board."
                     );
+
                 }
+
 
                 // =========================
                 // PAY ENTRY FEE
@@ -1352,6 +1279,7 @@ if (!room.next_game_time) {
                         fee
                     );
 
+
                 if (
                     !payment ||
                     !payment.success
@@ -1361,7 +1289,9 @@ if (!room.next_game_time) {
                         payment?.error ||
                         "Could not pay entry fee"
                     );
+
                 }
+
 
                 console.log(
                     "ENTRY FEE PAID:",
@@ -1370,8 +1300,10 @@ if (!room.next_game_time) {
                     payment.transactionId
                 );
 
+
                 button.textContent =
                     "JOINING...";
+
 
                 // =========================
                 // FINAL BOARD CHECK
@@ -1380,6 +1312,7 @@ if (!room.next_game_time) {
                 await loadTakenBoards(
                     game.id
                 );
+
 
                 if (
                     takenBoardNumbers.has(
@@ -1394,7 +1327,9 @@ if (!room.next_game_time) {
                         selectedBoardNumber +
                         " was taken by another player. Your entry fee will be refunded."
                     );
+
                 }
+
 
                 // =========================
                 // ADD PLAYER
@@ -1423,13 +1358,17 @@ if (!room.next_game_time) {
 
                         });
 
+
                 if (playerError) {
 
                     throw playerError;
+
                 }
+
 
                 playerInserted =
                     true;
+
 
                 // =========================
                 // SAVE GAME INFORMATION
@@ -1437,7 +1376,9 @@ if (!room.next_game_time) {
 
                 localStorage.setItem(
                     "gameId",
-                    String(game.id)
+                    String(
+                        game.id
+                    )
                 );
 
                 localStorage.setItem(
@@ -1459,6 +1400,7 @@ if (!room.next_game_time) {
                     "false"
                 );
 
+
                 console.log(
                     "JOINED GAME:",
                     game.id
@@ -1468,6 +1410,7 @@ if (!room.next_game_time) {
                     "BOARD SAVED:",
                     selectedBoardNumber
                 );
+
 
                 // =========================
                 // OPEN WAITING ROOM
@@ -1480,12 +1423,14 @@ if (!room.next_game_time) {
                     game.id
                 );
 
+
             } catch (error) {
 
                 console.error(
                     "JOIN GAME ERROR:",
                     error
                 );
+
 
                 // =========================
                 // REFUND IF PAYMENT SUCCEEDED
@@ -1503,6 +1448,7 @@ if (!room.next_game_time) {
                         "REFUNDING ENTRY FEE:",
                         payment.transactionId
                     );
+
 
                     const {
                         data: refundData,
@@ -1522,6 +1468,7 @@ if (!room.next_game_time) {
                             }
                         );
 
+
                     if (refundError) {
 
                         console.error(
@@ -1537,7 +1484,9 @@ if (!room.next_game_time) {
                         );
 
                         return;
+
                     }
+
 
                     if (
                         refundData &&
@@ -1556,8 +1505,11 @@ if (!room.next_game_time) {
                             "ENTRY FEE REFUNDED:",
                             fee
                         );
+
                     }
+
                 }
+
 
                 alert(
                     "❌ Could not join the game.\n\n" +
@@ -1566,6 +1518,7 @@ if (!room.next_game_time) {
                         String(error)
                     )
                 );
+
 
             } finally {
 
@@ -1580,6 +1533,7 @@ if (!room.next_game_time) {
         };
 
 }
+
 
 // ==========================================
 // BACK BUTTON
@@ -1609,6 +1563,7 @@ function setupBoardBackButton() {
             }
 
         };
+
 }
 
 
