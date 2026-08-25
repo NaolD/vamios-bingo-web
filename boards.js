@@ -1200,15 +1200,103 @@ function setupBoardStartButton() {
 
                 else {
 
-                    // The timer must already belong to the
-                    // existing shared game.
+                    // =========================
+                    // ENSURE SHARED TIMER EXISTS
+                    // =========================
+
+                    if (
+                        !room.next_game_time
+                    ) {
+
+                        const nextGameTime =
+                            new Date(
+                                Date.now() +
+                                60000
+                            ).toISOString();
+
+                        const {
+                            data: updatedRoom,
+                            error: timerError
+                        } =
+                            await supabase
+                                .from("rooms")
+                                .update({
+                                    next_game_time:
+                                        nextGameTime
+                                })
+                                .eq(
+                                    "id",
+                                    room.id
+                                )
+                                .is(
+                                    "next_game_time",
+                                    null
+                                )
+                                .select(
+                                    "next_game_time"
+                                )
+                                .maybeSingle();
+
+                        if (timerError) {
+
+                            throw timerError;
+
+                        }
+
+                        if (updatedRoom) {
+
+                            room.next_game_time =
+                                updatedRoom.next_game_time;
+
+                            console.log(
+                                "STARTED MISSING SHARED 60 SECOND TIMER:",
+                                room.next_game_time
+                            );
+
+                        } else {
+
+                            // Another player may have created
+                            // the timer at the same time.
+                            const {
+                                data: currentRoom,
+                                error:
+                                    currentRoomError
+                            } =
+                                await supabase
+                                    .from("rooms")
+                                    .select(
+                                        "next_game_time"
+                                    )
+                                    .eq(
+                                        "id",
+                                        room.id
+                                    )
+                                    .single();
+
+                            if (currentRoomError) {
+
+                                throw currentRoomError;
+
+                            }
+
+                            room.next_game_time =
+                                currentRoom.next_game_time;
+
+                            console.log(
+                                "USING SHARED TIMER CREATED BY ANOTHER PLAYER:",
+                                room.next_game_time
+                            );
+
+                        }
+
+                    }
 
                     if (
                         !room.next_game_time
                     ) {
 
                         throw new Error(
-                            "Shared waiting game exists but the room has no next_game_time."
+                            "Could not create or find the shared game timer."
                         );
 
                     }
@@ -1219,7 +1307,6 @@ function setupBoardStartButton() {
                     );
 
                 }
-
                 // =========================
                 // LOAD TAKEN BOARDS
                 // =========================
