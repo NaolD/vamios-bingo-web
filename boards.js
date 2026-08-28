@@ -1338,6 +1338,82 @@ function setupBoardStartButton() {
                     );
 
                 }
+                // =========================
+                // CHECK IF PLAYER ALREADY JOINED
+                // =========================
+
+                const {
+                    data: existingPlayer,
+                    error: existingPlayerError
+                } =
+                    await supabase
+                        .from("game_players")
+                        .select(
+                            "id, board_number, board"
+                        )
+                        .eq(
+                            "game_id",
+                            game.id
+                        )
+                        .eq(
+                            "user_id",
+                            userId
+                        )
+                        .maybeSingle();
+
+                if (existingPlayerError) {
+
+                    throw existingPlayerError;
+
+                }
+
+                // =========================
+                // PLAYER ALREADY JOINED
+                // =========================
+
+                if (existingPlayer) {
+
+                    console.log(
+                        "PLAYER ALREADY JOINED:",
+                        game.id,
+                        existingPlayer.board_number
+                    );
+
+                    localStorage.setItem(
+                        "gameId",
+                        String(game.id)
+                    );
+
+                    localStorage.setItem(
+                        "selectedBoard",
+                        JSON.stringify(
+                            existingPlayer.board ||
+                            selectedBoard
+                        )
+                    );
+
+                    localStorage.setItem(
+                        "selectedBoardNumber",
+                        String(
+                            existingPlayer.board_number
+                        )
+                    );
+
+                    localStorage.setItem(
+                        "isHost",
+                        "false"
+                    );
+
+                    showWaitingScreen();
+
+                    await startWaitingRoom(
+                        room.id,
+                        game.id
+                    );
+
+                    return;
+
+                }
 
                 // =========================
                 // PAY ENTRY FEE
@@ -1397,8 +1473,9 @@ function setupBoardStartButton() {
 
                 }
 
+
                 // =========================
-                // ADD PLAYER
+                // ADD NEW PLAYER
                 // =========================
 
                 const {
