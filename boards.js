@@ -910,6 +910,15 @@ function setupBoardStartButton() {
             let room = null;
             let playerInserted = false;
 
+            // ==========================================
+            // NEW:
+            // Track whether THIS player actually
+            // created the waiting game.
+            // ==========================================
+
+            let gameCreatedByThisPlayer =
+                false;
+
             try {
 
                 // =========================
@@ -1088,6 +1097,14 @@ function setupBoardStartButton() {
                         game =
                             createdGame;
 
+                        // ==================================
+                        // IMPORTANT:
+                        // THIS PLAYER REALLY CREATED GAME
+                        // ==================================
+
+                        gameCreatedByThisPlayer =
+                            true;
+
                         console.log(
                             "CREATED NEW SHARED GAME:",
                             game.id
@@ -1098,17 +1115,20 @@ function setupBoardStartButton() {
                 }
 
                 // ==========================================
-                // START SHARED 60 SECOND TIMER
+                // SHARED 60 SECOND TIMER
                 //
-                // IMPORTANT:
-                // Only the player who creates the NEW
-                // waiting game starts the timer.
+                // Only the player who actually CREATED
+                // the new game starts a fresh timer.
                 //
-                // Players joining an existing game use
-                // the same room.next_game_time.
+                // Players joining an existing game,
+                // including players who lost the creation
+                // race, use the shared room timer.
                 // ==========================================
 
-                if (!existingGame && game) {
+                if (
+                    gameCreatedByThisPlayer &&
+                    game
+                ) {
 
                     const nextGameTime =
                         new Date(
@@ -1130,14 +1150,10 @@ function setupBoardStartButton() {
                                 "id",
                                 room.id
                             )
-                            .is(
-                                "next_game_time",
-                                null
-                            )
                             .select(
                                 "next_game_time"
                             )
-                            .maybeSingle();
+                            .single();
 
                     if (timerError) {
 
@@ -1145,52 +1161,13 @@ function setupBoardStartButton() {
 
                     }
 
-                    if (updatedRoom) {
+                    room.next_game_time =
+                        updatedRoom.next_game_time;
 
-                        room.next_game_time =
-                            updatedRoom.next_game_time;
-
-                        console.log(
-                            "STARTED NEW SHARED 60 SECOND TIMER:",
-                            room.next_game_time
-                        );
-
-                    } else {
-
-                        // Another player may have set it
-                        // between the room read and this update.
-
-                        const {
-                            data: currentRoom,
-                            error:
-                                currentRoomError
-                        } =
-                            await supabase
-                                .from("rooms")
-                                .select(
-                                    "next_game_time"
-                                )
-                                .eq(
-                                    "id",
-                                    room.id
-                                )
-                                .single();
-
-                        if (currentRoomError) {
-
-                            throw currentRoomError;
-
-                        }
-
-                        room.next_game_time =
-                            currentRoom.next_game_time;
-
-                        console.log(
-                            "USING SHARED TIMER CREATED BY ANOTHER PLAYER:",
-                            room.next_game_time
-                        );
-
-                    }
+                    console.log(
+                        "STARTED NEW SHARED 60 SECOND TIMER:",
+                        room.next_game_time
+                    );
 
                 }
 
@@ -1257,6 +1234,7 @@ function setupBoardStartButton() {
 
                             // Another player may have created
                             // the timer at the same time.
+
                             const {
                                 data: currentRoom,
                                 error:
@@ -1307,6 +1285,7 @@ function setupBoardStartButton() {
                     );
 
                 }
+
                 // =========================
                 // LOAD TAKEN BOARDS
                 // =========================
@@ -1338,6 +1317,7 @@ function setupBoardStartButton() {
                     );
 
                 }
+
                 // =========================
                 // CHECK IF PLAYER ALREADY JOINED
                 // =========================
@@ -1472,7 +1452,6 @@ function setupBoardStartButton() {
                     );
 
                 }
-
 
                 // =========================
                 // ADD NEW PLAYER
